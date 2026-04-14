@@ -77,13 +77,33 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RAG-01 through RAG-06 | Phase 1 | Pending |
-| AGT-01, AGT-03 | Phase 1 | Pending |
-| PRD-01, PRD-02, PRD-03, PRD-04 | Phase 2 | Pending |
-| RPT-01, RPT-02, RPT-03, RPT-04, RPT-05 | Phase 2 | Pending |
+| RAG-01 | Phase 1 | Pending |
+| RAG-02 | Phase 1 | Pending |
+| RAG-03 | Phase 1 | Pending |
+| RAG-04 | Phase 1 | Pending |
+| RAG-05 | Phase 1 | Pending |
+| RAG-06 | Phase 1 | Pending |
+| AGT-01 | Phase 1 | Pending |
+| AGT-03 | Phase 1 | Pending |
+| PRD-01 | Phase 2 | Pending |
+| PRD-02 | Phase 2 | Pending |
+| PRD-03 | Phase 2 | Pending |
+| PRD-04 | Phase 2 | Pending |
+| RPT-01 | Phase 2 | Pending |
+| RPT-02 | Phase 2 | Pending |
+| RPT-03 | Phase 2 | Pending |
+| RPT-04 | Phase 2 | Pending |
+| RPT-05 | Phase 2 | Pending |
 | PRD-05 | Phase 3 | Pending |
-| IMG-01 through IMG-06 | Phase 3 | Pending |
-| AGT-02, AGT-04, AGT-05 | Phase 3 | Pending |
+| IMG-01 | Phase 3 | Pending |
+| IMG-02 | Phase 3 | Pending |
+| IMG-03 | Phase 3 | Pending |
+| IMG-04 | Phase 3 | Pending |
+| IMG-05 | Phase 3 | Pending |
+| IMG-06 | Phase 3 | Pending |
+| AGT-02 | Phase 3 | Pending |
+| AGT-04 | Phase 3 | Pending |
+| AGT-05 | Phase 3 | Pending |
 | (v2 requirements) | Phase 4+ | Deferred |
 
 **Coverage:**
@@ -93,4 +113,4 @@
 
 ---
 *Requirements defined: 2026/04/14*
-*Last updated: 2026/04/14 after initial definition*
+*Last updated: 2026/04/14 after roadmap creation*
