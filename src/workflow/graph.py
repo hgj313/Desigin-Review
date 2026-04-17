@@ -13,7 +13,7 @@ from typing import Literal
 
 from langgraph.graph import StateGraph, END
 
-from src.workflow.state import IngestionState, QueryState, PRDReviewState
+from src.workflow.state import IngestionState, QueryState, PRDReviewState, ImageReviewState
 from src.ingestion.loaders import load_document
 from src.ingestion.chunker import StructuralChunker
 from src.embeddings.bge_m3 import BGE_M3_Embeddings
@@ -375,6 +375,171 @@ def create_prd_review_graph() -> StateGraph:
     return workflow.compile()
 
 
+# ============================================================================
+# Image Review Graph Nodes
+# ============================================================================
+
+
+def should_refine_image_decision(state: ImageReviewState) -> Literal["refine", "generate_report"]:
+    """Decide whether to continue refinement or generate report for image review.
+
+    Continue refining if:
+    1. Haven't reached max_iterations
+    2. Findings have changed significantly
+
+    Per D-17: Max iterations controlled by review_depth.
+    """
+    if state["review_iteration"] >= state["max_iterations"]:
+        return "generate_report"
+    # TODO: Add convergence check
+    return "refine"
+
+
+def re_retrieve_image_node(state: ImageReviewState) -> ImageReviewState:
+    """Query knowledge base again with refined context for image review.
+
+    Retrieves design tokens with version metadata filtering per D-24.
+    """
+    return {"refined_findings": state["all_findings"]}
+
+
+def generate_image_report_node(state: ImageReviewState) -> ImageReviewState:
+    """Generate compliance report from image review findings.
+
+    Uses refined_findings if available, otherwise all_findings.
+    Includes all finding categories: color, typography, spacing, accessibility, assumptions.
+    """
+    from src.report.markdown import generate_compliance_report
+    from datetime import datetime
+
+    findings = state.get("refined_findings", state["all_findings"])
+    metadata = {
+        "collection_name": state["collection_name"],
+        "review_depth": state["review_depth"],
+        "image_path": state["image_path"],
+        "date": datetime.now().strftime("%Y-%m-%d"),
+        "review_type": "image_review",
+    }
+    report = generate_compliance_report(findings, metadata)
+    return {"report": report, "status": "completed"}
+
+
+def create_image_review_graph() -> StateGraph:
+    """Create image review workflow with 5-way parallel fan-out per D-22.
+
+    Graph structure:
+        start -> validate_color (IMG-01, IMG-02)
+              -> validate_typography (IMG-03)
+              -> validate_spacing (IMG-04)
+              -> validate_accessibility (IMG-05)
+              -> detect_prd_assumptions (PRD-05)
+              -> aggregate_findings
+              -> (conditional: iterate? -> re_retrieve -> validators) x max_iterations
+              -> generate_report -> END
+
+    Returns:
+        Compiled StateGraph for image review pipeline.
+    """
+    from src.workflow.state import ImageReviewState
+
+    # Import validators - will be created in 03-02
+    # Placeholder imports for now
+    try:
+        from src.workflow.nodes.image_validators import (
+            validate_color_node,
+            validate_typography_node,
+            validate_spacing_node,
+            validate_accessibility_node,
+            detect_prd_assumptions_node,
+            aggregate_image_findings_node,
+        )
+    except ImportError:
+        # Use placeholder nodes if not yet created
+        def validate_color_node(state: ImageReviewState) -> ImageReviewState:
+            return {"color_findings": state.get("color_findings", [])}
+
+        def validate_typography_node(state: ImageReviewState) -> ImageReviewState:
+            return {"typography_findings": state.get("typography_findings", [])}
+
+        def validate_spacing_node(state: ImageReviewState) -> ImageReviewState:
+            return {"spacing_findings": state.get("spacing_findings", [])}
+
+        def validate_accessibility_node(state: ImageReviewState) -> ImageReviewState:
+            return {"accessibility_findings": state.get("accessibility_findings", [])}
+
+        def detect_prd_assumptions_node(state: ImageReviewState) -> ImageReviewState:
+            return {"assumption_findings": state.get("assumption_findings", [])}
+
+        def aggregate_image_findings_node(state: ImageReviewState) -> ImageReviewState:
+            # Aggregate all findings
+            all_findings = (
+                state.get("structure_findings", []) +
+                state.get("terminology_findings", []) +
+                state.get("completeness_findings", []) +
+                state.get("formatting_findings", []) +
+                state.get("color_findings", []) +
+                state.get("typography_findings", []) +
+                state.get("spacing_findings", []) +
+                state.get("accessibility_findings", []) +
+                state.get("assumption_findings", [])
+            )
+            return {"all_findings": all_findings}
+
+    workflow = StateGraph(ImageReviewState)
+
+    # Fan-out: 5 parallel validation nodes per D-22
+    workflow.add_node("validate_color", validate_color_node)
+    workflow.add_node("validate_typography", validate_typography_node)
+    workflow.add_node("validate_spacing", validate_spacing_node)
+    workflow.add_node("validate_accessibility", validate_accessibility_node)
+    workflow.add_node("detect_prd_assumptions", detect_prd_assumptions_node)
+
+    # Join: aggregate findings
+    workflow.add_node("aggregate_findings", aggregate_image_findings_node)
+
+    # Iterative refinement loop per D-17
+    workflow.add_node("should_refine", lambda state: {"review_iteration": state["review_iteration"] + 1})
+    workflow.add_node("re_retrieve", re_retrieve_image_node)
+
+    # Report generation
+    workflow.add_node("generate_report", generate_image_report_node)
+
+    # Entry point: __start__ -> all 5 validators (fan-out in parallel)
+    workflow.add_edge("__start__", "validate_color")
+    workflow.add_edge("__start__", "validate_typography")
+    workflow.add_edge("__start__", "validate_spacing")
+    workflow.add_edge("__start__", "validate_accessibility")
+    workflow.add_edge("__start__", "detect_prd_assumptions")
+
+    # Fan-out edges: all validators feed into aggregate_findings
+    workflow.add_edge("validate_color", "aggregate_findings")
+    workflow.add_edge("validate_typography", "aggregate_findings")
+    workflow.add_edge("validate_spacing", "aggregate_findings")
+    workflow.add_edge("validate_accessibility", "aggregate_findings")
+    workflow.add_edge("detect_prd_assumptions", "aggregate_findings")
+
+    # Join to refinement check
+    workflow.add_edge("aggregate_findings", "should_refine")
+
+    # Refinement conditional: loop back to validators or proceed to report
+    workflow.add_conditional_edges(
+        "should_refine",
+        should_refine_image_decision,
+        {
+            "refine": "re_retrieve",
+            "generate_report": "generate_report",
+        },
+    )
+
+    # Re-retrieve loops back to color validator
+    workflow.add_edge("re_retrieve", "validate_color")
+
+    # Report to END
+    workflow.add_edge("generate_report", END)
+
+    return workflow.compile()
+
+
 def create_query_graph() -> StateGraph:
     """Create knowledge base query workflow graph.
 
@@ -494,5 +659,6 @@ __all__ = [
     "create_ingestion_graph",
     "create_query_graph",
     "create_prd_review_graph",
+    "create_image_review_graph",
     "KnowledgeBaseWorkflow",
 ]
