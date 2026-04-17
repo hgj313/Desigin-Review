@@ -9,6 +9,7 @@ References:
 """
 
 import logging
+from datetime import datetime
 from typing import Optional
 
 import chromadb
@@ -205,6 +206,121 @@ class ChromaStore:
             "count": self.collection.count(),
             "persist_directory": self.persist_directory,
         }
+
+    def query_with_version_filter(
+        self,
+        query_embedding: list[float],
+        query_date: datetime = None,
+        k: int = 5,
+    ) -> list[tuple[Document, float]]:
+        """Query knowledge base with version metadata filtering per AGT-05.
+
+        Only retrieves standards where:
+        - effective_date <= query_date (standard was in effect)
+        - superseded_date is null OR superseded_date > query_date (not superseded)
+
+        Args:
+            query_embedding: Query embedding vector.
+            query_date: Date to check effective_date against (default: now).
+            k: Number of results to return.
+
+        Returns:
+            List of (Document, score) tuples ordered by similarity.
+        """
+        if query_date is None:
+            query_date = datetime.now()
+
+        # Query Chroma with the embedding
+        results = self.collection.query(
+            query_embeddings=[query_embedding],
+            n_results=k,
+            include=["documents", "metadatas", "distances"],
+        )
+
+        if not results["documents"]:
+            return []
+
+        # Filter by version metadata
+        filtered_results = []
+        for doc_text, metadata, distance in zip(
+            results["documents"][0],
+            results["metadatas"][0],
+            results["distances"][0],
+        ):
+            # Check effective_date
+            effective_date_str = metadata.get("effective_date")
+            if effective_date_str:
+                effective_date = datetime.fromisoformat(effective_date_str)
+                if effective_date > query_date:
+                    # Standard not yet in effect
+                    continue
+
+            # Check superseded_date
+            superseded_date_str = metadata.get("superseded_date")
+            if superseded_date_str:
+                superseded_date = datetime.fromisoformat(superseded_date_str)
+                if superseded_date <= query_date:
+                    # Standard has been superseded
+                    continue
+
+            # Passed all filters - include this result
+            doc = Document(page_content=doc_text, metadata=metadata)
+            score = 1 / (1 + distance)  # Convert distance to similarity
+            filtered_results.append((doc, score))
+
+        # Sort by score descending
+        filtered_results.sort(key=lambda x: x[1], reverse=True)
+
+        return filtered_results
+
+    def get_current_standards(
+        self,
+        query_text: str = None,
+        k: int = 10,
+    ) -> list[Document]:
+        """Get all currently effective standards from the collection.
+
+        Args:
+            query_text: Optional text to filter standards by content.
+            k: Maximum number of standards to return.
+
+        Returns:
+            List of Document objects that are currently effective.
+        """
+        # Get all documents
+        all_docs = self.collection.get()
+
+        if not all_docs["documents"]:
+            return []
+
+        query_date = datetime.now()
+        effective_docs = []
+
+        for doc_text, metadata in zip(
+            all_docs["documents"],
+            all_docs["metadatas"],
+        ):
+            # Check effective_date
+            effective_date_str = metadata.get("effective_date")
+            if effective_date_str:
+                effective_date = datetime.fromisoformat(effective_date_str)
+                if effective_date > query_date:
+                    continue
+
+            # Check superseded_date
+            superseded_date_str = metadata.get("superseded_date")
+            if superseded_date_str:
+                superseded_date = datetime.fromisoformat(superseded_date_str)
+                if superseded_date <= query_date:
+                    continue
+
+            # Passed all filters
+            effective_docs.append(Document(page_content=doc_text, metadata=metadata))
+
+            if len(effective_docs) >= k:
+                break
+
+        return effective_docs
 
 
 def create_chroma_store(
