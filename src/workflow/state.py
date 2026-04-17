@@ -7,7 +7,8 @@ References:
 - AGT-01: Use TypedDict for LangGraph state, not arbitrary dicts
 """
 
-from typing import TypedDict, Optional
+from typing import TypedDict, Optional, Literal, List
+from pydantic import BaseModel
 
 from langchain_core.documents import Document
 
@@ -77,6 +78,109 @@ class ReviewState(TypedDict):
     error: Optional[str]
 
 
+class Finding(BaseModel):
+    """Single review finding with location and severity per RPT-02, RPT-03, RPT-04.
+
+    Attributes:
+        issue_type: Type of issue (structure/terminology/completeness/formatting).
+        severity: Severity level (Critical/Major/Minor/Suggestion).
+        location: Line number, section name, or coordinates.
+        description_en: English description of the finding.
+        description_zh: Chinese description of the finding.
+        suggestion_en: English improvement suggestion.
+        suggestion_zh: Chinese improvement suggestion.
+    """
+
+    issue_type: str  # structure, terminology, completeness, formatting
+    severity: Literal["Critical", "Major", "Minor", "Suggestion"]
+    location: str  # line number, section name, or coordinates
+    description_en: str
+    description_zh: str
+    suggestion_en: Optional[str] = None
+    suggestion_zh: Optional[str] = None
+
+
+class PRDReviewState(TypedDict):
+    """State for PRD review workflow.
+
+    Tracks parallel validation of PRD documents against design standards.
+
+    Attributes:
+        prd_text: Raw PRD document text.
+        collection_name: Chroma collection name for knowledge base.
+        review_depth: Validation thoroughness (fast/balanced/thorough).
+        max_iterations: Maximum refinement iterations.
+        review_iteration: Current iteration count.
+        structure_findings: Findings from structure validation.
+        terminology_findings: Findings from terminology validation.
+        completeness_findings: Findings from completeness validation.
+        formatting_findings: Findings from formatting validation.
+        all_findings: Aggregated findings from all validators.
+        refined_findings: Findings after iterative refinement.
+        report: Generated compliance report.
+        status: Current workflow status.
+        error: Error message if status is error.
+    """
+
+    prd_text: str
+    collection_name: str
+    review_depth: Literal["fast", "balanced", "thorough"]
+    max_iterations: int
+    review_iteration: int
+    structure_findings: List[Finding]
+    terminology_findings: List[Finding]
+    completeness_findings: List[Finding]
+    formatting_findings: List[Finding]
+    all_findings: List[Finding]
+    refined_findings: Optional[List[Finding]] = None
+    report: Optional[str] = None
+    status: str
+    error: Optional[str]
+
+
+def get_initial_prd_review_state(
+    prd_text: str,
+    collection_name: str = "design_standards",
+    review_depth: str = "balanced",
+) -> PRDReviewState:
+    """Create initial state for PRD review workflow.
+
+    Args:
+        prd_text: Raw PRD document text.
+        collection_name: Chroma collection name (default: design_standards).
+        review_depth: Validation thoroughness (default: balanced).
+            - fast: max_iterations=1, retrieval_k=3
+            - balanced: max_iterations=2, retrieval_k=5
+            - thorough: max_iterations=3, retrieval_k=10
+
+    Returns:
+        PRDReviewState dict with initial values.
+    """
+    depth_config = {
+        "fast": {"max_iterations": 1},
+        "balanced": {"max_iterations": 2},
+        "thorough": {"max_iterations": 3},
+    }
+    config = depth_config.get(review_depth, depth_config["balanced"])
+
+    return PRDReviewState(
+        prd_text=prd_text,
+        collection_name=collection_name,
+        review_depth=review_depth,
+        max_iterations=config["max_iterations"],
+        review_iteration=0,
+        structure_findings=[],
+        terminology_findings=[],
+        completeness_findings=[],
+        formatting_findings=[],
+        all_findings=[],
+        refined_findings=None,
+        report=None,
+        status="pending",
+        error=None,
+    )
+
+
 def get_initial_ingestion_state(
     file_path: str,
     metadata: dict,
@@ -134,6 +238,9 @@ __all__ = [
     "IngestionState",
     "QueryState",
     "ReviewState",
+    "Finding",
+    "PRDReviewState",
     "get_initial_ingestion_state",
     "get_initial_query_state",
+    "get_initial_prd_review_state",
 ]
