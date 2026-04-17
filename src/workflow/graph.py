@@ -9,7 +9,7 @@ References:
 - D-12: Standard Not Found when no relevant guidance
 """
 
-from typing import Literal
+from typing import Literal, Union
 
 from langgraph.graph import StateGraph, END
 
@@ -284,6 +284,40 @@ def re_retrieve_node(state: PRDReviewState) -> PRDReviewState:
     return {"refined_findings": state["all_findings"]}
 
 
+def error_handler_node(state: Union[PRDReviewState, ImageReviewState]) -> Union[PRDReviewState, ImageReviewState]:
+    """Handle errors after retries exhausted - generate bilingual error and halt.
+
+    Per D-25: After all retries exhausted, generates bilingual error response and halts graph.
+    Uses create_not_found_response template for bilingual output.
+    """
+    error = state.get("error", "Unknown error")
+    from src.prompts.templates import create_not_found_response
+
+    # Generate bilingual error message using Standard Not Found template
+    error_response = create_not_found_response(
+        query=f"Error encountered: {error}",
+        threshold=0.7,
+        confidence=0.0,
+    )
+
+    return {
+        **state,
+        "status": "error",
+        "report": f"Error | 错误: {error}\n\n{error_response}",
+        "error": error,
+    }
+
+
+def should_handle_error(state: Union[PRDReviewState, ImageReviewState]) -> Literal["error_handler", "should_refine"]:
+    """Route to error handler if error is set, otherwise continue to refinement check.
+
+    Per D-25: Catches exceptions from all graph nodes via conditional routing.
+    """
+    if state.get("error"):
+        return "error_handler"
+    return "should_refine"
+
+
 def generate_report_node(state: PRDReviewState) -> PRDReviewState:
     """Generate compliance report from findings.
 
@@ -333,6 +367,7 @@ def create_prd_review_graph() -> StateGraph:
 
     # Join: aggregate findings
     workflow.add_node("aggregate_findings", aggregate_findings_node)
+    workflow.add_node("error_handler", error_handler_node)
 
     # Iterative refinement loop
     workflow.add_node("should_refine", should_refine_node)
@@ -353,8 +388,14 @@ def create_prd_review_graph() -> StateGraph:
     workflow.add_edge("validate_completeness", "aggregate_findings")
     workflow.add_edge("validate_formatting", "aggregate_findings")
 
-    # Join to refinement check
-    workflow.add_edge("aggregate_findings", "should_refine")
+    # Join to refinement check with error handling
+    # Error handling conditional edge per D-25
+    workflow.add_conditional_edges(
+        "aggregate_findings",
+        should_handle_error,
+        {"error_handler": "error_handler", "should_refine": "should_refine"},
+    )
+    workflow.add_edge("error_handler", END)  # Error handler halts
 
     # Refinement conditional: loop back to validators or proceed to report
     workflow.add_conditional_edges(
@@ -463,6 +504,7 @@ def create_image_review_graph() -> StateGraph:
 
     # Join: aggregate findings
     workflow.add_node("aggregate_findings", aggregate_image_findings_node)
+    workflow.add_node("error_handler", error_handler_node)
 
     # Iterative refinement loop per D-17
     workflow.add_node("should_refine", lambda state: {"review_iteration": state["review_iteration"] + 1})
@@ -485,8 +527,14 @@ def create_image_review_graph() -> StateGraph:
     workflow.add_edge("validate_accessibility", "aggregate_findings")
     workflow.add_edge("detect_prd_assumptions", "aggregate_findings")
 
-    # Join to refinement check
-    workflow.add_edge("aggregate_findings", "should_refine")
+    # Join to refinement check with error handling
+    # Error handling conditional edge per D-25
+    workflow.add_conditional_edges(
+        "aggregate_findings",
+        should_handle_error,
+        {"error_handler": "error_handler", "should_refine": "should_refine"},
+    )
+    workflow.add_edge("error_handler", END)  # Error handler halts
 
     # Refinement conditional: loop back to validators or proceed to report
     workflow.add_conditional_edges(
