@@ -8,7 +8,7 @@ References:
 """
 
 from typing import TypedDict, Optional, Literal, List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from langchain_core.documents import Document
 
@@ -98,6 +98,36 @@ class Finding(BaseModel):
     description_zh: str
     suggestion_en: Optional[str] = None
     suggestion_zh: Optional[str] = None
+
+
+class ReviewResponse(BaseModel):
+    """Structured response object returned to caller per D-32.
+
+    Hides LangGraph state schema complexity from callers.
+
+    Attributes:
+        report: Bilingual compliance report string
+        findings: List of all review findings
+        status: Overall workflow status (completed, error, low_confidence)
+        error: Error message if status is error
+    """
+    report: str = Field(description="Bilingual compliance report string")
+    findings: List[Finding] = Field(default_factory=list, description="All review findings")
+    status: Literal["completed", "error", "low_confidence"] = Field(
+        description="Overall workflow status"
+    )
+    error: Optional[str] = Field(None, description="Error message if status=error")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "report": "## Design Review Report\n...",
+                "findings": [...],
+                "status": "completed",
+                "error": None,
+            }
+        }
+    }
 
 
 class PRDReviewState(TypedDict):
@@ -317,6 +347,7 @@ __all__ = [
     "QueryState",
     "ReviewState",
     "Finding",
+    "ReviewResponse",
     "PRDReviewState",
     "ImageReviewState",
     "get_initial_ingestion_state",

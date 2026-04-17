@@ -9,7 +9,7 @@ References:
 - D-12: Standard Not Found when no relevant guidance
 """
 
-from typing import Literal, Union, List
+from typing import Literal, Union, List, Optional
 
 from langgraph.graph import StateGraph, END
 
@@ -385,6 +385,72 @@ def error_handler_node(state: Union[PRDReviewState, ImageReviewState]) -> Union[
     }
 
 
+def confidence_threshold_node(state: PRDReviewState) -> PRDReviewState:
+    """Apply three-zone confidence handling per D-28.
+
+    D-27: Fixed threshold 0.7 default (global, not per-workflow)
+    D-28: Three-zone confidence handling:
+        - 0.7+ -> found, return results
+        - 0.5-0.7 -> show with low-confidence warning (bilingual)
+        - <0.5 -> always Standard Not Found (hard floor)
+    D-29: Hallucination prevention: Standard Not Found is explicit message
+
+    v1 NOTE: This node uses a heuristic based on finding severity counts
+    to estimate confidence. The actual confidence scoring would ideally come
+    from retrieval scores when LLM-based retrieval confidence is available.
+    This heuristic produces:
+        - Critical findings: ~0.8 (found zone)
+        - Multiple major findings: ~0.75 (found zone)
+        - Some findings: ~0.7 (found zone boundary)
+        - No findings: 0.4 (not_found zone)
+
+    The low_confidence_warning zone (0.5-0.7) is not naturally produced
+    by this heuristic. Future iterations should wire this to actual
+    retrieval confidence scores from the vector store.
+    """
+    threshold = 0.7  # D-27 fixed threshold
+    low_confidence_threshold = 0.5  # D-28 hard floor
+
+    findings = state.get("all_findings", [])
+
+    # If no findings, this is effectively not_found (confidence < 0.5)
+    if not findings:
+        return {
+            **state,
+            "confidence_zone": "not_found",
+            "confidence": 0.0,
+        }
+
+    # Heuristic: estimate confidence based on finding count and severity
+    # In a full implementation, this would come from retrieval scores
+    critical_count = sum(1 for f in findings if f.severity == "Critical")
+    major_count = sum(1 for f in findings if f.severity == "Major")
+
+    # If many critical issues found, likely good coverage (high confidence)
+    if critical_count > 0:
+        confidence = 0.8
+        zone = "found"
+    elif major_count > 2:
+        confidence = 0.75
+        zone = "found"
+    elif findings:
+        confidence = 0.7
+        zone = "found"
+    else:
+        confidence = 0.4  # Very low - likely not found
+        zone = "not_found"
+
+    # Apply three-zone logic
+    if zone == "found" and confidence < threshold:
+        zone = "low_confidence_warning"
+
+    return {
+        **state,
+        "confidence": confidence,
+        "confidence_zone": zone,
+    }
+
+
 def should_handle_error(state: Union[PRDReviewState, ImageReviewState]) -> Literal["error_handler", "should_refine"]:
     """Route to error handler if error is set, otherwise continue to refinement check.
 
@@ -449,6 +515,7 @@ def create_prd_review_graph() -> StateGraph:
     # Iterative refinement loop
     workflow.add_node("should_refine", should_refine_node)
     workflow.add_node("re_retrieve", re_retrieve_node)
+    workflow.add_node("confidence_threshold", confidence_threshold_node)
 
     # Report generation
     workflow.add_node("generate_report", generate_report_node)
@@ -470,8 +537,9 @@ def create_prd_review_graph() -> StateGraph:
     workflow.add_conditional_edges(
         "aggregate_findings",
         should_handle_error,
-        {"error_handler": "error_handler", "should_refine": "should_refine"},
+        {"error_handler": "error_handler", "should_refine": "confidence_threshold"},
     )
+    workflow.add_edge("confidence_threshold", "should_refine")
     workflow.add_edge("error_handler", END)  # Error handler halts
 
     # Refinement conditional: loop back to validators or proceed to report
@@ -589,6 +657,7 @@ def create_image_review_graph() -> StateGraph:
     # Iterative refinement loop per D-17
     workflow.add_node("should_refine", lambda state: {"review_iteration": state["review_iteration"] + 1})
     workflow.add_node("re_retrieve", re_retrieve_image_node)
+    workflow.add_node("confidence_threshold", confidence_threshold_node)
 
     # Report generation
     workflow.add_node("generate_report", generate_image_report_node)
@@ -612,8 +681,9 @@ def create_image_review_graph() -> StateGraph:
     workflow.add_conditional_edges(
         "aggregate_findings",
         should_handle_error,
-        {"error_handler": "error_handler", "should_refine": "should_refine"},
+        {"error_handler": "error_handler", "should_refine": "confidence_threshold"},
     )
+    workflow.add_edge("confidence_threshold", "should_refine")
     workflow.add_edge("error_handler", END)  # Error handler halts
 
     # Refinement conditional: loop back to validators or proceed to report
@@ -714,6 +784,8 @@ class KnowledgeBaseWorkflow:
         # Compile graphs
         self.ingestion_graph = create_ingestion_graph()
         self.query_graph = create_query_graph()
+        self.prd_review_graph = create_prd_review_graph()
+        self.image_review_graph = create_image_review_graph()
 
     def ingest(self, file_path: str, metadata: dict) -> IngestionState:
         """Ingest a document into the knowledge base.
@@ -752,6 +824,93 @@ class KnowledgeBaseWorkflow:
             collection_name=self.collection_name,
         )
         return self.query_graph.invoke(initial)
+
+    def review(
+        self,
+        prd_text: str,
+        image_path: Optional[str] = None,
+        collection_name: str = "design_standards",
+        review_depth: str = "balanced",
+    ) -> "ReviewResponse":
+        """Single unified entry point for PRD and image review per D-30.
+
+        If image_path provided -> use image_review_graph (5-way fan-out)
+        If no image_path -> use prd_review_graph (4-way fan-out)
+
+        Per D-31: Two separate graphs (no merge) - graphs remain independent,
+        review() composes them.
+
+        Per D-27: Fixed threshold 0.7 default (global, not per-workflow).
+
+        Per D-28: Three-zone confidence handling:
+        - 0.7+ -> found, return results
+        - 0.5-0.7 -> low-confidence warning (bilingual)
+        - <0.5 -> always Standard Not Found (hard floor)
+
+        Per D-32: Returns structured ReviewResponse with report, findings, status, error.
+
+        Args:
+            prd_text: Raw PRD document text.
+            image_path: Optional path to prototype image for image review.
+            collection_name: Chroma collection name (default: design_standards).
+            review_depth: Validation thoroughness (default: balanced).
+
+        Returns:
+            ReviewResponse with report, findings, status, and optional error.
+        """
+        from src.workflow.state import (
+            get_initial_prd_review_state,
+            get_initial_image_review_state,
+            ReviewResponse,
+        )
+
+        if image_path:
+            # Image review path (D-30)
+            initial = get_initial_image_review_state(
+                prd_text=prd_text,
+                image_path=image_path,
+                collection_name=collection_name,
+                review_depth=review_depth,
+            )
+            result = self.image_review_graph.invoke(initial)
+        else:
+            # PRD only path (D-30)
+            initial = get_initial_prd_review_state(
+                prd_text=prd_text,
+                collection_name=collection_name,
+                review_depth=review_depth,
+            )
+            result = self.prd_review_graph.invoke(initial)
+
+        # Extract results
+        report = result.get("report", "")
+        findings = result.get("all_findings", [])
+        status = result.get("status", "unknown")
+        error = result.get("error")
+
+        # Build ReviewResponse per D-32
+        if status == "error":
+            return ReviewResponse(
+                report=report,
+                findings=findings,
+                status="error",
+                error=error,
+            )
+        elif status == "low_confidence":
+            # Low confidence warning - still return results but with warning
+            return ReviewResponse(
+                report=report,
+                findings=findings,
+                status="low_confidence",
+                error=None,
+            )
+        else:
+            return ReviewResponse(
+                report=report,
+                findings=findings,
+                status="completed",
+                error=None,
+            )
 
 
 __all__ = [
