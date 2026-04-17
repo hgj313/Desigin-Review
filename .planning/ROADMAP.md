@@ -1,6 +1,7 @@
-# ROADMAP.md - Design Doc Review Expert Agent
+# ROADMAP.md - Design Doc Review Expert Agent | 项目路线图
 
 **Project:** AI-Powered Design Document Review System
+**项目：** AI 驱动的设计文档审查系统
 **Created:** 2026/04/14
 **Granularity:** Coarse (4 phases)
 **Parallelization:** Enabled
@@ -9,7 +10,7 @@
 
 ## Overview
 
-A RAG-powered agent that reviews PRD documents and prototype images against company design standards, producing bilingual compliance reports. Built with LangChain + LangGraph, using Claude for reasoning and Chroma for vector storage.
+A RAG-powered agent that reviews PRD documents and prototype images against company design standards, producing bilingual compliance reports. Built with LangChain + LangGraph, using MiniMax M2.7 for reasoning (OpenAI-compatible, multimodal) and Chroma for vector storage.
 
 **Core Value:** Automate design compliance review at scale. Replace manual, inconsistent reviews with consistent, scalable AI-powered validation.
 
