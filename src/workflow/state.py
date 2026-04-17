@@ -136,6 +136,8 @@ class PRDReviewState(TypedDict):
     report: Optional[str] = None
     status: str
     error: Optional[str]
+    retry_count: int = 0
+    previous_findings: Optional[List[Finding]] = None
 
 
 def get_initial_prd_review_state(
@@ -178,6 +180,8 @@ def get_initial_prd_review_state(
         report=None,
         status="pending",
         error=None,
+        retry_count=0,
+        previous_findings=None,
     )
 
 
