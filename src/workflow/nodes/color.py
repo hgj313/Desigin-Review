@@ -42,25 +42,20 @@ def query_design_tokens(
         embedding_fn=BGE_M3_Embeddings(),
     )
 
-    # Get all documents and filter by version metadata
-    all_docs = store.collection.get()
+    # Get query embedding for similarity search
+    embedding_fn = BGE_M3_Embeddings()
+    query_embedding = embedding_fn.embed_query(query_text)
 
-    if not all_docs["documents"]:
-        return []
+    # Use query_with_version_filter which properly checks:
+    # - effective_date <= query_date
+    # - superseded_date is null OR superseded_date > query_date
+    results = store.query_with_version_filter(
+        query_embedding=query_embedding,
+        query_date=query_date,
+        k=10,
+    )
 
-    # Filter by effective_date <= query_date
-    filtered_tokens = []
-    for doc, metadata in zip(all_docs["documents"], all_docs["metadatas"]):
-        effective_date_str = metadata.get("effective_date")
-        if effective_date_str:
-            effective_date = datetime.fromisoformat(effective_date_str)
-            if effective_date <= query_date:
-                filtered_tokens.append({
-                    "content": doc,
-                    "metadata": metadata,
-                })
-
-    return filtered_tokens
+    return [{"content": doc.page_content, "metadata": doc.metadata} for doc, score in results]
 
 
 def validate_color_node(state: ImageReviewState) -> ImageReviewState:
