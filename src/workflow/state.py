@@ -234,13 +234,89 @@ def get_initial_query_state(
     )
 
 
+def get_initial_image_review_state(
+    prd_text: str,
+    image_path: str,
+    collection_name: str = "design_standards",
+    review_depth: str = "balanced",
+) -> "ImageReviewState":
+    """Create initial state for image review workflow.
+
+    Args:
+        prd_text: Raw PRD document text.
+        image_path: Path to prototype image file.
+        collection_name: Chroma collection name (default: design_standards).
+        review_depth: Validation thoroughness (default: balanced).
+            - fast: max_iterations=1
+            - balanced: max_iterations=2
+            - thorough: max_iterations=3
+
+    Returns:
+        ImageReviewState dict with initial values.
+    """
+    depth_config = {
+        "fast": {"max_iterations": 1},
+        "balanced": {"max_iterations": 2},
+        "thorough": {"max_iterations": 3},
+    }
+    config = depth_config.get(review_depth, depth_config["balanced"])
+
+    # Get initial PRD review state
+    prd_state = get_initial_prd_review_state(
+        prd_text=prd_text,
+        collection_name=collection_name,
+        review_depth=review_depth,
+    )
+
+    # Convert to ImageReviewState with image-specific fields
+    return ImageReviewState(
+        **prd_state,
+        image_path=image_path,
+        image_analysis=None,
+        color_findings=[],
+        typography_findings=[],
+        spacing_findings=[],
+        accessibility_findings=[],
+        assumption_findings=[],
+        design_tokens=[],
+    )
+
+
+class ImageReviewState(PRDReviewState):
+    """State for image review workflow.
+
+    Extends PRDReviewState with image-specific fields per D-19.
+
+    Additional Attributes:
+        image_path: Path to prototype image being reviewed.
+        image_analysis: Cached analysis from MiniMax Vision API.
+        color_findings: Findings from color palette validation (IMG-01, IMG-02).
+        typography_findings: Findings from typography analysis (IMG-03).
+        spacing_findings: Findings from spacing/grid validation (IMG-04).
+        accessibility_findings: Findings from WCAG contrast check (IMG-05).
+        assumption_findings: Findings from vague language detection (PRD-05).
+        design_tokens: Retrieved brand/design token standards with version metadata.
+    """
+
+    image_path: str
+    image_analysis: Optional[dict] = None
+    color_findings: List["Finding"] = []
+    typography_findings: List["Finding"] = []
+    spacing_findings: List["Finding"] = []
+    accessibility_findings: List["Finding"] = []
+    assumption_findings: List["Finding"] = []
+    design_tokens: List[dict] = []
+
+
 __all__ = [
     "IngestionState",
     "QueryState",
     "ReviewState",
     "Finding",
     "PRDReviewState",
+    "ImageReviewState",
     "get_initial_ingestion_state",
     "get_initial_query_state",
     "get_initial_prd_review_state",
+    "get_initial_image_review_state",
 ]
