@@ -9,11 +9,11 @@ References:
 - D-12: Standard Not Found when no relevant guidance
 """
 
-from typing import Literal, Union
+from typing import Literal, Union, List
 
 from langgraph.graph import StateGraph, END
 
-from src.workflow.state import IngestionState, QueryState, PRDReviewState, ImageReviewState
+from src.workflow.state import IngestionState, QueryState, PRDReviewState, ImageReviewState, Finding
 from src.ingestion.loaders import load_document
 from src.ingestion.chunker import StructuralChunker
 from src.embeddings.bge_m3 import BGE_M3_Embeddings
@@ -257,31 +257,108 @@ def create_ingestion_graph() -> StateGraph:
 
 
 def should_refine_node(state: PRDReviewState) -> PRDReviewState:
-    """Increment iteration counter when entering refine path."""
-    return {"review_iteration": state["review_iteration"] + 1}
+    """Increment iteration counter and check for convergence.
+
+    Per D-26: stable across 2 consecutive iterations -> exit early.
+    Stores current findings as previous_findings for next iteration comparison.
+    """
+    current_findings = state.get("refined_findings", state["all_findings"])
+    previous_findings = state.get("previous_findings")
+
+    # Store current as previous for next iteration's comparison
+    new_state = {
+        "review_iteration": state["review_iteration"] + 1,
+        "previous_findings": current_findings,
+    }
+
+    # Check convergence if we have previous findings to compare
+    # (skip on first iteration - no previous to compare)
+    if previous_findings is not None and _findings_stable(previous_findings, current_findings):
+        # Stable for 2 iterations - convergence detected
+        # Set flag that will route to generate_report
+        return {**new_state, "_converged": True}
+
+    return {**new_state, "_converged": False}
 
 
 def should_refine_decision(state: PRDReviewState) -> Literal["refine", "generate_report"]:
     """Decide whether to continue refinement or generate report.
 
-    Continue refining if:
-    1. Haven't reached max_iterations
-    2. Findings have changed significantly (convergence check)
+    Per D-26: stable across 2 consecutive iterations -> exit early.
+    Per D-26: max_iterations=3 remains the hard ceiling.
 
-    Per D-17: Max 3 iterations for iterative refinement.
+    Note: This function only returns routing strings (Literal["refine", "generate_report"]).
+    State updates happen in should_refine_node, not here.
     """
+    # Hard ceiling check first
     if state["review_iteration"] >= state["max_iterations"]:
         return "generate_report"
-    # TODO: Add convergence check - if refined_findings == all_findings, stop
+
+    # Convergence check - _converged was set by should_refine_node
+    if state.get("_converged"):
+        return "generate_report"
+
     return "refine"
+
+
+def _count_by_category(findings: List[Finding]) -> dict:
+    """Count findings by category and severity.
+
+    Per D-26: convergence check includes severity per category.
+    """
+    result = {}
+    for f in findings:
+        key = (f.issue_type, f.severity)
+        result[key] = result.get(key, 0) + 1
+    return result
+
+
+def _findings_stable(previous: List[Finding], current: List[Finding]) -> bool:
+    """Check if findings are stable (unchanged) between iterations.
+
+    Per D-26: stability means:
+    1. Same count of findings
+    2. Same severity per category
+    3. Same location set
+
+    Returns True if findings are stable (convergence detected).
+    """
+    # Check 1: Same count
+    if len(previous) != len(current):
+        return False
+
+    # Check 2: Same severity per category
+    prev_by_cat = _count_by_category(previous)
+    curr_by_cat = _count_by_category(current)
+    if prev_by_cat != curr_by_cat:
+        return False
+
+    # Check 3: Same location set
+    prev_locs = {f.location for f in previous}
+    curr_locs = {f.location for f in current}
+    if prev_locs != curr_locs:
+        return False
+
+    return True
 
 
 def re_retrieve_node(state: PRDReviewState) -> PRDReviewState:
     """Query knowledge base again with refined context.
 
-    For now, pass state through (refinement logic placeholder).
+    Per AGT-04: LangGraph cycles enable re-retrieval when initial findings inconclusive.
+    Per D-26: Stores findings for convergence comparison.
+
+    This is a placeholder - actual re-retrieval logic will refine findings.
+    For now, we store the current findings for the next iteration's comparison.
     """
-    return {"refined_findings": state["all_findings"]}
+    # Store current all_findings as refined_findings for this iteration
+    current_findings = state.get("all_findings", [])
+
+    # The previous_findings was already stored by should_refine_node
+    # This node triggers the next iteration of validation
+    return {
+        "refined_findings": current_findings,
+    }
 
 
 def error_handler_node(state: Union[PRDReviewState, ImageReviewState]) -> Union[PRDReviewState, ImageReviewState]:
@@ -439,9 +516,12 @@ def should_refine_image_decision(state: ImageReviewState) -> Literal["refine", "
 def re_retrieve_image_node(state: ImageReviewState) -> ImageReviewState:
     """Query knowledge base again with refined context for image review.
 
-    Retrieves design tokens with version metadata filtering per D-24.
+    Per D-26: Stores findings for convergence comparison.
     """
-    return {"refined_findings": state["all_findings"]}
+    current_findings = state.get("all_findings", [])
+    return {
+        "refined_findings": current_findings,
+    }
 
 
 def generate_image_report_node(state: ImageReviewState) -> ImageReviewState:
