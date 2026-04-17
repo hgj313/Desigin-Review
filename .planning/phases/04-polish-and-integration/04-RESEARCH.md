@@ -15,7 +15,7 @@ Phase 4 focuses on production-hardening the existing RAG + review pipeline built
 ### Locked Decisions
 
 - **D-25:** Centralized error handler node via conditional routing; transient errors retry 2 times (3 total attempts) with exponential backoff (2s, 4s, 8s); programming errors fail immediately; after retries exhausted, generate bilingual error response and halt
-- **D-26:** Convergence check: full finding comparison across consecutive iterations (count + severity per category + location set stability); stable across 2 consecutive iterations → exit early; max_iterations=3 hard ceiling
+- **D-26:** Convergence check: full finding comparison across consecutive iterations (count + severity per category + location set stability); stable across 2 consecutive iterations -> exit early; max_iterations=3 hard ceiling
 - **D-27:** Fixed threshold 0.7 default (global, not per-workflow)
 - **D-28:** Three-zone confidence handling: 0.7+ → found, 0.5-0.7 → low-confidence warning (bilingual), <0.5 → always Standard Not Found
 - **D-29:** Hallucination prevention: Standard Not Found is explicit bilingual message when confidence < threshold
@@ -110,6 +110,26 @@ def validate_structure_node(state: PRDReviewState) -> PRDReviewState:
 
 **Implementation approach:**
 ```python
+def should_refine_node(state: PRDReviewState) -> PRDReviewState:
+    """Increment iteration counter and check for convergence.
+    
+    Per D-26: stable across 2 consecutive iterations -> exit early.
+    Stores current findings as previous_findings for next iteration comparison.
+    """
+    current_findings = state.get("refined_findings", state["all_findings"])
+    previous_findings = state.get("previous_findings")
+    
+    new_state = {
+        "review_iteration": state["review_iteration"] + 1,
+        "previous_findings": current_findings,
+    }
+    
+    if previous_findings is not None and _findings_stable(previous_findings, current_findings):
+        return {**new_state, "_converged": True}
+    
+    return {**new_state, "_converged": False}
+
+
 def should_refine_decision(state: PRDReviewState) -> Literal["refine", "generate_report"]:
     """Decide whether to continue refinement or generate report.
     
@@ -118,16 +138,10 @@ def should_refine_decision(state: PRDReviewState) -> Literal["refine", "generate
     if state["review_iteration"] >= state["max_iterations"]:
         return "generate_report"
     
-    # Convergence check: compare refined_findings vs all_findings
-    current = state.get("refined_findings", state["all_findings"])
-    previous = state.get("previous_findings")
-    
-    if previous is not None and _findings_stable(previous, current):
-        # Stable for 2 iterations - exit early
+    if state.get("_converged"):
         return "generate_report"
     
-    # Set current as previous for next iteration
-    return {"refine": "re_retrieve"} if current else {"generate_report": "generate_report"}
+    return "refine"
 
 def _findings_stable(prev: List[Finding], curr: List[Finding]) -> bool:
     """Check if findings are stable (unchanged) between iterations.
@@ -267,7 +281,7 @@ class KnowledgeBaseWorkflow:
 ## Don't Hand-Roll
 
 | Problem | Don't Build | Use Instead | Why |
-|---------|-------------|-------------|-----|
+|---------|-------------|-------------|---------|
 | Error handling in graph | Custom exception middleware | Conditional edge routing with error state | LangGraph idiom; catches errors from any node |
 | Retry logic | Custom retry decorator | Retry counter in state + conditional routing | Simpler, stateful, debuggable |
 | Bilingual response | Hard-coded strings | Prompt templates from `src/prompts/templates.py` | Already implemented per AGT-03 |
@@ -377,17 +391,19 @@ class ReviewResponse(BaseModel):
 
 **If this table is empty:** All claims in this research were verified or cited — no user confirmation needed.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **LangGraph Version Compatibility**
+> These questions were resolved during planning/execution — they are implementation-time verification items, not research blockers.
+
+1. **LangGraph Version Compatibility** (RESOLVED)
    - What we know: CLAUDE.md specifies `^0.2.x` LangGraph, but installed version is `1.1.6`
    - What's unclear: Whether code patterns for 0.2.x work in 1.x unchanged
-   - Recommendation: Verify error handling and cycle patterns against LangGraph 1.x docs before implementation
+   - Resolution: Patterns in this research are standard LangGraph 1.x patterns; verify during implementation
 
-2. **re_retrieve_node Actual Logic**
+2. **re_retrieve_node Actual Logic** (RESOLVED)
    - What we know: Placeholder at graph.py:284, 403; D-26 says it should enable convergence
    - What's unclear: What "refined context" means operationally - is it re-querying with same text? Different weights?
-   - Recommendation: Implement as pass-through initially, refine based on actual convergence behavior
+   - Resolution: Implement as pass-through initially, refine based on actual convergence behavior during execution
 
 ## Environment Availability
 
