@@ -126,6 +126,61 @@ Design Standards Retrieval Results
     return f"{header}\n{all_results}"
 
 
+SEVERITY_ASSESSMENT_TEMPLATE = """English:
+Assess the severity of this PRD review finding.
+
+Issue Type: {issue_type}
+Description: {description}
+Context: {context}
+
+Severity levels: Critical > Major > Minor > Suggestion
+Critical = Required section missing or blocks review
+Major = Significant issue affecting clarity or compliance
+Minor = Formatting or style issue
+Suggestion = Best practice recommendation
+
+Chinese:
+评估此PRD审查问题的严重程度。
+
+问题类型：{issue_type}
+描述：{description}
+上下文：{context}
+
+严重级别：Critical > Major > Minor > Suggestion
+Critical = 缺少必需章节或阻止审查
+Major = 影响清晰度或合规性的重要问题
+Minor = 格式或样式问题
+Suggestion = 最佳实践建议
+
+{format_instructions}
+"""
+
+
+def format_severity_assessment(
+    issue_type: str,
+    description: str,
+    context: str,
+    format_instructions: str,
+) -> str:
+    """Format severity assessment prompt.
+
+    Args:
+        issue_type: Type of issue being assessed.
+        description: Description of the finding.
+        context: Surrounding context from the document.
+        format_instructions: Instructions for response formatting.
+
+    Returns:
+        Formatted severity assessment prompt string.
+    """
+    return SEVERITY_ASSESSMENT_TEMPLATE.format(
+        issue_type=issue_type,
+        description=description,
+        context=context,
+        format_instructions=format_instructions,
+    )
+
+
 def create_not_found_response(
     query: str,
     threshold: float,
@@ -155,7 +210,9 @@ __all__ = [
     "STANDARD_NOT_FOUND_TEMPLATE",
     "RETRIEVAL_RESULT_TEMPLATE",
     "SOURCE_ATTRIBUTION_TEMPLATE",
+    "SEVERITY_ASSESSMENT_TEMPLATE",
     "format_retrieval_results",
     "format_source_attribution",
     "create_not_found_response",
+    "format_severity_assessment",
 ]
