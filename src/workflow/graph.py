@@ -13,7 +13,7 @@ from typing import Literal
 
 from langgraph.graph import StateGraph, END
 
-from src.workflow.state import IngestionState, QueryState
+from src.workflow.state import IngestionState, QueryState, PRDReviewState
 from src.ingestion.loaders import load_document
 from src.ingestion.chunker import StructuralChunker
 from src.embeddings.bge_m3 import BGE_M3_Embeddings
@@ -251,6 +251,130 @@ def create_ingestion_graph() -> StateGraph:
     return workflow.compile()
 
 
+# ============================================================================
+# PRD Review Graph Nodes
+# ============================================================================
+
+
+def should_refine_node(state: PRDReviewState) -> PRDReviewState:
+    """Increment iteration counter when entering refine path."""
+    return {"review_iteration": state["review_iteration"] + 1}
+
+
+def should_refine_decision(state: PRDReviewState) -> Literal["refine", "generate_report"]:
+    """Decide whether to continue refinement or generate report.
+
+    Continue refining if:
+    1. Haven't reached max_iterations
+    2. Findings have changed significantly (convergence check)
+
+    Per D-17: Max 3 iterations for iterative refinement.
+    """
+    if state["review_iteration"] >= state["max_iterations"]:
+        return "generate_report"
+    # TODO: Add convergence check - if refined_findings == all_findings, stop
+    return "refine"
+
+
+def re_retrieve_node(state: PRDReviewState) -> PRDReviewState:
+    """Query knowledge base again with refined context.
+
+    For now, pass state through (refinement logic placeholder).
+    """
+    return {"refined_findings": state["all_findings"]}
+
+
+def generate_report_node(state: PRDReviewState) -> PRDReviewState:
+    """Generate compliance report from findings.
+
+    Uses refined_findings if available, otherwise all_findings.
+    """
+    from src.report.markdown import generate_compliance_report
+    from datetime import datetime
+
+    findings = state.get("refined_findings", state["all_findings"])
+    metadata = {
+        "collection_name": state["collection_name"],
+        "review_depth": state["review_depth"],
+        "date": datetime.now().strftime("%Y-%m-%d"),
+    }
+    report = generate_compliance_report(findings, metadata)
+    return {"report": report, "status": "completed"}
+
+
+def create_prd_review_graph() -> StateGraph:
+    """Create PRD review workflow with fan-out/join and iterative refinement.
+
+    Graph structure:
+        start -> fan-out (4 parallel validators)
+               -> aggregate_findings
+               -> (conditional: iterate? -> re_retrieve -> validate) x max_iterations
+               -> generate_report -> END
+
+    Per D-17: Max 3 iterations for iterative refinement.
+    Per D-16: review_depth controls max_iterations, retrieval_k.
+    """
+    from src.workflow.state import PRDReviewState
+    from src.workflow.nodes import (
+        validate_structure_node,
+        validate_terminology_node,
+        validate_completeness_node,
+        validate_formatting_node,
+        aggregate_findings_node,
+    )
+
+    workflow = StateGraph(PRDReviewState)
+
+    # Fan-out: 4 parallel validation nodes
+    workflow.add_node("validate_structure", validate_structure_node)
+    workflow.add_node("validate_terminology", validate_terminology_node)
+    workflow.add_node("validate_completeness", validate_completeness_node)
+    workflow.add_node("validate_formatting", validate_formatting_node)
+
+    # Join: aggregate findings
+    workflow.add_node("aggregate_findings", aggregate_findings_node)
+
+    # Iterative refinement loop
+    workflow.add_node("should_refine", should_refine_node)
+    workflow.add_node("re_retrieve", re_retrieve_node)
+
+    # Report generation
+    workflow.add_node("generate_report", generate_report_node)
+
+    # Entry point: __start__ -> all 4 validators (fan-out in parallel)
+    workflow.add_edge("__start__", "validate_structure")
+    workflow.add_edge("__start__", "validate_terminology")
+    workflow.add_edge("__start__", "validate_completeness")
+    workflow.add_edge("__start__", "validate_formatting")
+
+    # Fan-out edges: all validators feed into aggregate_findings
+    workflow.add_edge("validate_structure", "aggregate_findings")
+    workflow.add_edge("validate_terminology", "aggregate_findings")
+    workflow.add_edge("validate_completeness", "aggregate_findings")
+    workflow.add_edge("validate_formatting", "aggregate_findings")
+
+    # Join to refinement check
+    workflow.add_edge("aggregate_findings", "should_refine")
+
+    # Refinement conditional: loop back to validators or proceed to report
+    workflow.add_conditional_edges(
+        "should_refine",
+        should_refine_decision,
+        {
+            "refine": "re_retrieve",
+            "generate_report": "generate_report",
+        },
+    )
+
+    # Re-retrieve loops back to validators
+    workflow.add_edge("re_retrieve", "validate_structure")
+
+    # Report to END
+    workflow.add_edge("generate_report", END)
+
+    return workflow.compile()
+
+
 def create_query_graph() -> StateGraph:
     """Create knowledge base query workflow graph.
 
@@ -369,5 +493,6 @@ class KnowledgeBaseWorkflow:
 __all__ = [
     "create_ingestion_graph",
     "create_query_graph",
+    "create_prd_review_graph",
     "KnowledgeBaseWorkflow",
 ]
