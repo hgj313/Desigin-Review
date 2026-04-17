@@ -43,8 +43,10 @@ An AI-powered expert agent that reviews product PRD documents and prototype imag
 ## Constraints | 约束
 
 - **Tech Stack**: LangChain (RAG/Retrieval) + LangGraph (Workflow Orchestration) — both complementary, not competing | 互补使用，不竞争
-- **Vector DB**: Choice needed — options include Chroma (local), Pinecone (cloud), Qdrant | 待选择
-- **LLM**: Choice needed — Claude, GPT-4, or local model | 待选择
+- **Vector DB**: Chroma (local, zero-setup, learning-friendly) | 本地存储，零配置
+- **LLM**: MiniMax M2.7 (OpenAI-compatible API, multimodal, Token Plan with free tier) | MiniMax M2.7
+- **Embedding**: bge-m3 (bilingual Chinese/English, local) | 双语嵌入，本地部署
+- **Image Handling**: MiniMax Image Understanding API | MiniMax 图像理解
 - **Review Coverage**: Full dimension coverage (structure, terminology, layout, accessibility) | 全维度覆盖
 - **Scale**: Designed for 100+ page knowledge base | 为 100+ 页知识库设计
 
@@ -52,10 +54,12 @@ An AI-powered expert agent that reviews product PRD documents and prototype imag
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| LangChain + LangGraph hybrid | LangChain for retrieval生态, LangGraph for complex workflow | — Pending |
+| LangChain + LangGraph hybrid | LangChain for retrieval生态, LangGraph for complex workflow | — Confirmed |
 | Chunking strategy | 100+ pages requires thoughtful splitting | — Pending |
-| Vector DB selection | Local vs cloud tradeoffs for learning | — Pending |
-| LLM selection | Quality vs cost vs privacy | — Pending |
+| Vector DB selection | Chroma (local, learning-friendly) | — Confirmed |
+| LLM selection | MiniMax M2.7 (OpenAI-compatible, multimodal, no API key needed) | — Confirmed |
+| Embedding selection | bge-m3 (bilingual Chinese/English, local) | — Confirmed |
+| Image handling | MiniMax Image Understanding | — Confirmed |
 
 ## Evolution | 演进
 
@@ -75,4 +79,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026/04/14 after initialization*
+*Last updated: 2026/04/17 after Phase 3 completion (multi-dimensional image review)*
