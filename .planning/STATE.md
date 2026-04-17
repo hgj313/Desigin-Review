@@ -1,6 +1,22 @@
-# STATE.md - Design Doc Review Expert Agent
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+current_phase: 01
+status: unknown
+last_updated: "2026-04-17T01:20:16.388Z"
+progress:
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 3
+  completed_plans: 2
+  percent: 67
+---
+
+# STATE.md - Design Doc Review Expert Agent | 项目状态
 
 **Project:** AI-Powered Design Document Review System
+**项目：** AI 驱动的设计文档审查系统
 **Created:** 2026/04/14
 **Last Updated:** 2026/04/14
 
@@ -12,12 +28,14 @@
 
 **Learning Focus:** Primary goal is to learn and practice RAG + Agent development patterns, not production deployment.
 
-**Current Phase:** Planning (no phases started)
+**Current Phase:** 01
 
 ---
 
 ## Current Position
 
+Phase: 01 (core-rag-pipeline) — EXECUTING
+Plan: 2 of 3
 | Field | Value |
 |-------|-------|
 | **Current Phase** | Not started |
@@ -41,37 +59,43 @@
 
 ## Accumulated Context
 
-### Key Decisions
+### Key Decisions | 关键决策
 
 | Decision | Rationale | Status |
 |----------|-----------|--------|
-| LangChain + LangGraph hybrid | LangChain for retrieval生态, LangGraph for complex workflow | Pending |
-| Chroma for vector DB | Local, zero setup, learning-friendly | Pending |
-| bge-m3 for embeddings | Bilingual Chinese/English, self-hostable | Pending |
-| Claude 3.5 Sonnet for LLM | Best reasoning for compliance checking, cost-effective | Pending |
-| Claude Vision for images | No separate OCR pipeline needed | Pending |
+| LangChain + LangGraph hybrid | LangChain for retrieval生态, LangGraph for complex workflow | Confirmed |
+| Chroma for vector DB | Local, zero setup, learning-friendly | Confirmed |
+| bge-m3 for embeddings | Bilingual Chinese/English, self-hostable | Confirmed |
+| MiniMax M2.7 for LLM | OpenAI-compatible, multimodal, free tier, no API key | Confirmed |
+| MiniMax Image Understanding | Same API, no separate OCR pipeline needed | Confirmed |
 
 ### Blockers
 
 None identified during roadmap creation.
 
-### Research Flags
+### Research Flags | 研究标记
 
 | Phase | Flag | Notes |
 |-------|------|-------|
 | Phase 1 | Verify bge-m3 vs voyage-multilingual | Bilingual retrieval quality untested |
-| Phase 2 | Confirm Claude 3.5 Sonnet reasoning quality | For compliance checking specifically |
-| Phase 4 | Prototype OCR + vision validation | Image review pitfalls poorly documented |
+| Phase 2 | Test MiniMax M2.7 reasoning quality | For compliance checking specifically |
+| Phase 4 | Test MiniMax image understanding | Image review quality comparison |
 | Cross-cutting | Current LangChain/LangGraph version compatibility | Breaking changes common |
 
 ---
 
-## Session Continuity
+## Session Continuity | 会话连续性
 
 **Created by:** /gsd-new-project (roadmap phase)
 **Date:** 2026/04/14
+**Last Updated:** 2026/04/16
+
+**Updates:**
+
+- 2026/04/16: Switched LLM from Claude to MiniMax (user has no Claude API key; MiniMax confirmed to support multimodal)
 
 **Next steps:**
+
 1. Approve roadmap (or provide feedback for revision)
 2. Begin Phase 1 planning with `/gsd-plan-phase 1`
 

@@ -11,9 +11,9 @@
 - [ ] **RAG-01**: User can ingest 100+ pages of design standards documents (Markdown/PDF) into Chroma vector store
 - [ ] **RAG-02**: System uses structural chunking (split on headers, list items) to preserve document context
 - [ ] **RAG-03**: System uses bge-m3 embeddings for bilingual Chinese/English retrieval
-- [ ] **RAG-04**: User can query knowledge base with natural language and retrieve relevant standards
-- [ ] **RAG-05**: System supports hybrid retrieval (BM25 + vector) for precision
-- [ ] **RAG-06**: Retrieved standards include source attribution (document name, section, version)
+- [x] **RAG-04**: User can query knowledge base with natural language and retrieve relevant standards
+- [x] **RAG-05**: System supports hybrid retrieval (BM25 + vector) for precision
+- [x] **RAG-06**: Retrieved standards include source attribution (document name, section, version)
 
 ### PRD Document Review | PRD 文档审查
 
@@ -30,7 +30,7 @@
 - [ ] **IMG-03**: System analyzes typography hierarchy (heading vs body vs caption styles)
 - [ ] **IMG-04**: System validates spacing and grid alignment against 8pt/4pt grid standards
 - [ ] **IMG-05**: System performs accessibility contrast checking (WCAG AA compliance)
-- [ ] **IMG-06**: System uses Claude Vision for image analysis (no separate OCR pipeline)
+- [ ] **IMG-06**: System uses MiniMax Image Understanding for image analysis (OpenAI-compatible API)
 
 ### Compliance Report | 合规报告
 
@@ -80,9 +80,9 @@
 | RAG-01 | Phase 1 | Pending |
 | RAG-02 | Phase 1 | Pending |
 | RAG-03 | Phase 1 | Pending |
-| RAG-04 | Phase 1 | Pending |
-| RAG-05 | Phase 1 | Pending |
-| RAG-06 | Phase 1 | Pending |
+| RAG-04 | Phase 1 | Complete |
+| RAG-05 | Phase 1 | Complete |
+| RAG-06 | Phase 1 | Complete |
 | AGT-01 | Phase 1 | Pending |
 | AGT-03 | Phase 1 | Pending |
 | PRD-01 | Phase 2 | Pending |
