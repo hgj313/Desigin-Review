@@ -122,37 +122,47 @@ def validate_terminology_node(state: PRDReviewState) -> PRDReviewState:
             embedding_fn=BGE_M3_Embeddings(),
         )
 
-        # Get all documents from collection
-        all_docs = store.collection.get()
+        # Use query_with_version_filter for version-aware retrieval
+        # This ensures we only get glossary terms that were effective at the time
+        embedding_fn = BGE_M3_Embeddings()
+        query_embedding = embedding_fn.embed_query("design standards glossary terminology")
 
-        if not all_docs["documents"]:
-            # Empty collection - no glossary found
+        versioned_results = store.query_with_version_filter(
+            query_embedding=query_embedding,
+            query_date=datetime.now(),
+            k=20,
+        )
+
+        # Extract glossary terms from versioned results
+        glossary_terms = []
+        all_documents = []
+        for doc, score in versioned_results:
+            all_documents.append(doc.page_content)
+            # Extract first line as term identifier
+            first_line = doc.page_content.split('\n')[0].strip()
+            if first_line:
+                glossary_terms.append(first_line)
+
+        if not glossary_terms:
+            # Empty result after version filtering
             findings.append(Finding(
                 issue_type="terminology",
                 severity="Suggestion",
                 location="document",
-                description_en="Standard Not Found: No glossary terms found in knowledge base",
-                description_zh="未找到标准：知识库中未找到词汇表术语",
+                description_en="Standard Not Found: No glossary terms found in knowledge base for the current period",
+                description_zh="未找到标准：当前时期知识库中未找到词汇表术语",
                 suggestion_en="Populate the knowledge base with design standards glossary",
                 suggestion_zh="请在知识库中填充设计标准词汇表",
             ))
             return {"terminology_findings": findings}
-
-        # Extract glossary terms (simplified - in production, parse structured glossary)
-        glossary_terms = []
-        for doc_text in all_docs["documents"]:
-            # Extract first line as term identifier
-            first_line = doc_text.split('\n')[0].strip()
-            if first_line:
-                glossary_terms.append(first_line)
 
         # Check exact matches
         findings.extend(_check_exact_match(prd_text, glossary_terms))
 
         # Check semantic matches using HybridRetriever
         retriever = HybridRetriever(
-            texts=all_docs["documents"],
-            embedding_fn=BGE_M3_Embeddings(),
+            texts=all_documents,
+            embedding_fn=embedding_fn,
             collection=store.collection,
         )
         findings.extend(_check_semantic_match(prd_text, glossary_terms, retriever))
