@@ -569,15 +569,13 @@ def create_prd_review_graph() -> StateGraph:
 def should_refine_image_decision(state: ImageReviewState) -> Literal["refine", "generate_report"]:
     """Decide whether to continue refinement or generate report for image review.
 
-    Continue refining if:
-    1. Haven't reached max_iterations
-    2. Findings have changed significantly
-
+    Per D-26: stable across 2 consecutive iterations -> exit early.
     Per D-17: Max iterations controlled by review_depth.
     """
     if state["review_iteration"] >= state["max_iterations"]:
         return "generate_report"
-    # TODO: Add convergence check
+    if state.get("_converged"):
+        return "generate_report"
     return "refine"
 
 
@@ -590,6 +588,26 @@ def re_retrieve_image_node(state: ImageReviewState) -> ImageReviewState:
     return {
         "refined_findings": current_findings,
     }
+
+
+def should_refine_image_node(state: ImageReviewState) -> ImageReviewState:
+    """Increment iteration counter and check for convergence in image review.
+
+    Per D-26: stable across 2 consecutive iterations -> exit early.
+    Stores current findings as previous_findings for next iteration comparison.
+    """
+    current_findings = state.get("refined_findings", state["all_findings"])
+    previous_findings = state.get("previous_findings")
+
+    new_state = {
+        "review_iteration": state["review_iteration"] + 1,
+        "previous_findings": current_findings,
+    }
+
+    if previous_findings is not None and _findings_stable(previous_findings, current_findings):
+        return {**new_state, "_converged": True}
+
+    return {**new_state, "_converged": False}
 
 
 def generate_image_report_node(state: ImageReviewState) -> ImageReviewState:
@@ -655,7 +673,7 @@ def create_image_review_graph() -> StateGraph:
     workflow.add_node("error_handler", error_handler_node)
 
     # Iterative refinement loop per D-17
-    workflow.add_node("should_refine", lambda state: {"review_iteration": state["review_iteration"] + 1})
+    workflow.add_node("should_refine", should_refine_image_node)
     workflow.add_node("re_retrieve", re_retrieve_image_node)
     workflow.add_node("confidence_threshold", confidence_threshold_node)
 
