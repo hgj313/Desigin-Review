@@ -442,48 +442,15 @@ def create_image_review_graph() -> StateGraph:
     """
     from src.workflow.state import ImageReviewState
 
-    # Import validators - will be created in 03-02
-    # Placeholder imports for now
-    try:
-        from src.workflow.nodes.image_validators import (
-            validate_color_node,
-            validate_typography_node,
-            validate_spacing_node,
-            validate_accessibility_node,
-            detect_prd_assumptions_node,
-            aggregate_image_findings_node,
-        )
-    except ImportError:
-        # Use placeholder nodes if not yet created
-        def validate_color_node(state: ImageReviewState) -> ImageReviewState:
-            return {"color_findings": state.get("color_findings", [])}
-
-        def validate_typography_node(state: ImageReviewState) -> ImageReviewState:
-            return {"typography_findings": state.get("typography_findings", [])}
-
-        def validate_spacing_node(state: ImageReviewState) -> ImageReviewState:
-            return {"spacing_findings": state.get("spacing_findings", [])}
-
-        def validate_accessibility_node(state: ImageReviewState) -> ImageReviewState:
-            return {"accessibility_findings": state.get("accessibility_findings", [])}
-
-        def detect_prd_assumptions_node(state: ImageReviewState) -> ImageReviewState:
-            return {"assumption_findings": state.get("assumption_findings", [])}
-
-        def aggregate_image_findings_node(state: ImageReviewState) -> ImageReviewState:
-            # Aggregate all findings
-            all_findings = (
-                state.get("structure_findings", []) +
-                state.get("terminology_findings", []) +
-                state.get("completeness_findings", []) +
-                state.get("formatting_findings", []) +
-                state.get("color_findings", []) +
-                state.get("typography_findings", []) +
-                state.get("spacing_findings", []) +
-                state.get("accessibility_findings", []) +
-                state.get("assumption_findings", [])
-            )
-            return {"all_findings": all_findings}
+    # Import real validators from src.workflow.nodes (wired in 03-04)
+    from src.workflow.nodes import (
+        validate_color_node,
+        validate_typography_node,
+        validate_spacing_node,
+        validate_accessibility_node,
+        detect_prd_assumptions_node,
+        aggregate_image_findings_node,
+    )
 
     workflow = StateGraph(ImageReviewState)
 
@@ -531,8 +498,12 @@ def create_image_review_graph() -> StateGraph:
         },
     )
 
-    # Re-retrieve loops back to color validator
+    # Re-retrieve loops back to all 5 validators (5-way fan-out per D-17)
     workflow.add_edge("re_retrieve", "validate_color")
+    workflow.add_edge("re_retrieve", "validate_typography")
+    workflow.add_edge("re_retrieve", "validate_spacing")
+    workflow.add_edge("re_retrieve", "validate_accessibility")
+    workflow.add_edge("re_retrieve", "detect_prd_assumptions")
 
     # Report to END
     workflow.add_edge("generate_report", END)
