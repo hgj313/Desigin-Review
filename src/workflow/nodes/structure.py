@@ -85,7 +85,6 @@ def validate_structure_node(state: PRDReviewState) -> PRDReviewState:
     findings.extend(_check_heading_hierarchy(prd_text))
 
     return {
-        **state,
         "structure_findings": findings,
     }
 

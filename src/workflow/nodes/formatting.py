@@ -117,7 +117,6 @@ def validate_formatting_node(state: PRDReviewState) -> PRDReviewState:
     findings.extend(_check_heading_syntax(prd_text))
 
     return {
-        **state,
         "formatting_findings": findings,
     }
 

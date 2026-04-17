@@ -106,7 +106,6 @@ def validate_completeness_node(state: PRDReviewState) -> PRDReviewState:
     findings.extend(_check_empty_sections(prd_text, review_depth))
 
     return {
-        **state,
         "completeness_findings": findings,
     }
 

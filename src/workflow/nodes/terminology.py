@@ -136,7 +136,7 @@ def validate_terminology_node(state: PRDReviewState) -> PRDReviewState:
                 suggestion_en="Populate the knowledge base with design standards glossary",
                 suggestion_zh="请在知识库中填充设计标准词汇表",
             ))
-            return {**state, "terminology_findings": findings}
+            return {"terminology_findings": findings}
 
         # Extract glossary terms (simplified - in production, parse structured glossary)
         glossary_terms = []
@@ -170,7 +170,6 @@ def validate_terminology_node(state: PRDReviewState) -> PRDReviewState:
         ))
 
     return {
-        **state,
         "terminology_findings": findings,
     }
 
