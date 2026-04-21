@@ -135,16 +135,19 @@ class StructuralChunker:
             List of chunked Document objects with header metadata.
         """
         header_meta = self._extract_header_metadata(doc.page_content)
-        sections = self._split_on_headers(doc.page_content)
+        sections, section_starts = self._split_on_headers(doc.page_content)
 
         all_chunks = []
-        for section_text in sections:
+        for idx, section_text in enumerate(sections):
             if not section_text.strip():
                 continue
 
             # Extract header info for this section
             section_meta = self._extract_header_metadata(section_text)
             combined_meta = {**doc.metadata, **header_meta, **section_meta}
+
+            # Track position in original document
+            section_start = section_starts[idx]
 
             # If section is small enough, don't split further
             if self._token_count(section_text) <= self.chunk_size:
@@ -155,23 +158,26 @@ class StructuralChunker:
                 # Split the section content
                 texts = self.splitter.split_text(section_text)
                 section_chunks = self._create_chunks_with_metadata(
-                    texts, combined_meta, start_index=None
+                    texts, combined_meta, start_index=section_start
                 )
                 all_chunks.extend(section_chunks)
 
         return all_chunks
 
-    def _split_on_headers(self, text: str) -> list[str]:
+    def _split_on_headers(self, text: str) -> tuple[list[str], list[int]]:
         """Split text on header boundaries while preserving headers.
 
         Args:
             text: Text to split.
 
         Returns:
-            List of text sections (headers + content).
+            Tuple of (sections, start_positions) where start_positions
+            contains the character offset of each section in original text.
         """
         sections = []
+        start_positions = []
         current = ""
+        current_start = 0
 
         lines = text.split("\n")
         for line in lines:
@@ -179,6 +185,8 @@ class StructuralChunker:
                 # Save previous section
                 if current:
                     sections.append(current)
+                    start_positions.append(current_start)
+                current_start = text.find(line, current_start)
                 current = line + "\n"
             else:
                 current += line + "\n"
@@ -186,8 +194,9 @@ class StructuralChunker:
         # Don't forget the last section
         if current:
             sections.append(current)
+            start_positions.append(current_start)
 
-        return sections
+        return sections, start_positions
 
     def _extract_header_metadata(self, text: str) -> dict:
         """Extract header hierarchy from text for metadata.
