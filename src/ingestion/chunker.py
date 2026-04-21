@@ -191,9 +191,10 @@ class StructuralChunker:
 
         lines = text.split("\n")
         for line in lines:
-            if line.startswith("# "):
-                level = len(line.lstrip()) - len(line.lstrip().lstrip("#"))
-                content = line[level:].strip()
+            stripped = line.lstrip()
+            if stripped.startswith("# "):
+                level = len(stripped) - len(stripped.lstrip("#"))
+                content = stripped[level:].strip()
 
                 # Save previous section
                 if current:
