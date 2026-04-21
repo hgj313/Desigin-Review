@@ -134,17 +134,23 @@ class StructuralChunker:
         Returns:
             List of chunked Document objects with header metadata.
         """
-        header_meta = self._extract_header_metadata(doc.page_content)
-        sections, section_starts = self._split_on_headers(doc.page_content)
+        sections, section_starts, header_paths = self._split_on_headers(doc.page_content)
 
         all_chunks = []
         for idx, section_text in enumerate(sections):
             if not section_text.strip():
                 continue
 
-            # Extract header info for this section
-            section_meta = self._extract_header_metadata(section_text)
-            combined_meta = {**doc.metadata, **header_meta, **section_meta}
+            # Build metadata from header path
+            section_meta = {"header_path": header_paths[idx]}
+
+            # If section has headers, also store the deepest header
+            path = header_paths[idx]
+            if path:
+                section_meta["heading"] = path[-1]
+                section_meta["heading_level"] = len(path)
+
+            combined_meta = {**doc.metadata, **section_meta}
 
             # Track position in original document
             section_start = section_starts[idx]
@@ -164,28 +170,41 @@ class StructuralChunker:
 
         return all_chunks
 
-    def _split_on_headers(self, text: str) -> tuple[list[str], list[int]]:
-        """Split text on header boundaries while preserving headers.
+    def _split_on_headers(self, text: str) -> tuple[list[str], list[int], list[list[str]]]:
+        """Split text on header boundaries while preserving header hierarchy.
 
         Args:
             text: Text to split.
 
         Returns:
-            Tuple of (sections, start_positions) where start_positions
-            contains the character offset of each section in original text.
+            Tuple of (sections, start_positions, header_paths) where:
+            - sections: text content of each section
+            - start_positions: character offset of each section in original text
+            - header_paths: list of header path lists, e.g. [["Intro"], ["Intro", "Section A"], ...]
         """
         sections = []
         start_positions = []
+        header_paths = []
         current = ""
         current_start = 0
+        current_path: list[str] = []
 
         lines = text.split("\n")
         for line in lines:
-            if line.startswith("## ") or line.startswith("# "):
+            if line.startswith("# "):
+                level = len(line) - len(line.lstrip("#"))
+                content = line[level:].strip()
+
                 # Save previous section
                 if current:
                     sections.append(current)
                     start_positions.append(current_start)
+                    header_paths.append(list(current_path))
+
+                # Update path stack: pop entries deeper than current level
+                current_path = current_path[: level - 1]
+                current_path.append(content)
+
                 current_start = text.find(line, current_start)
                 current = line + "\n"
             else:
@@ -195,39 +214,9 @@ class StructuralChunker:
         if current:
             sections.append(current)
             start_positions.append(current_start)
+            header_paths.append(list(current_path))
 
-        return sections, start_positions
-
-    def _extract_header_metadata(self, text: str) -> dict:
-        """Extract header hierarchy from text for metadata.
-
-        Parses the first line for # headers and returns section/subsection
-        information.
-
-        Args:
-            text: Text to parse.
-
-        Returns:
-            Dict with 'section' and 'subsection' keys (empty if no header).
-        """
-        lines = text.strip().split("\n")
-        if not lines:
-            return {}
-
-        first_line = lines[0].strip()
-
-        if first_line.startswith("## "):
-            return {
-                "section": "",
-                "subsection": first_line[3:].strip(),
-            }
-        elif first_line.startswith("# "):
-            return {
-                "section": first_line[2:].strip(),
-                "subsection": "",
-            }
-
-        return {}
+        return sections, start_positions, header_paths
 
     def _create_chunks_with_metadata(
         self,
