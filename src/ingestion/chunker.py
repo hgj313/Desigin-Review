@@ -97,9 +97,8 @@ class StructuralChunker:
                 chunked = self._split_markdown_with_headers(doc)
             else:
                 # Standard splitting
-                texts = self.splitter.split_text(doc.page_content)
-                chunked = self._create_chunks_with_metadata(
-                    texts, doc.metadata, start_index=None
+                chunked = self.splitter.create_documents(
+                    [doc.page_content], metadatas=[doc.metadata]
                 )
 
             chunks.extend(chunked)
@@ -162,11 +161,14 @@ class StructuralChunker:
                 )
             else:
                 # Split the section content
-                texts = self.splitter.split_text(section_text)
-                section_chunks = self._create_chunks_with_metadata(
-                    texts, combined_meta, start_index=section_start
+                section_docs = self.splitter.create_documents(
+                    [section_text], metadatas=[combined_meta]
                 )
-                all_chunks.extend(section_chunks)
+                for doc in section_docs:
+                    doc.metadata["chunk_start_index"] = (
+                        section_start + doc.metadata.get("start_index", 0)
+                    )
+                    all_chunks.append(doc)
 
         return all_chunks
 
@@ -218,30 +220,6 @@ class StructuralChunker:
             header_paths.append(list(current_header_path))
 
         return sections, start_positions, header_paths
-
-    def _create_chunks_with_metadata(
-        self,
-        texts: list[str],
-        base_metadata: dict,
-        start_index: Optional[int],
-    ) -> list[Document]:
-        """Create Document objects from split texts with metadata.
-
-        Args:
-            texts: List of text chunks.
-            base_metadata: Base metadata to attach to each chunk.
-            start_index: Starting index for position tracking.
-
-        Returns:
-            List of Document objects.
-        """
-        chunks = []
-        for i, text in enumerate(texts):
-            chunk_meta = {**base_metadata}
-            if start_index is not None:
-                chunk_meta["chunk_start_index"] = start_index + i
-            chunks.append(Document(page_content=text, metadata=chunk_meta))
-        return chunks
 
 
 def chunk_documents(
