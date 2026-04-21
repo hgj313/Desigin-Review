@@ -218,8 +218,8 @@ class StructuralChunker:
 
         if first_line.startswith("## "):
             return {
-                "section": first_line[3:].strip(),
-                "subsection": "",
+                "section": "",
+                "subsection": first_line[3:].strip(),
             }
         elif first_line.startswith("# "):
             return {
