@@ -185,9 +185,9 @@ class StructuralChunker:
         sections = []
         start_positions = []
         header_paths = []
-        current = ""
-        current_start = 0
-        current_path: list[str] = []
+        prev_section = ""
+        prev_section_start = 0
+        current_header_path: list[str] = []
 
         lines = text.split("\n")
         for line in lines:
@@ -197,25 +197,25 @@ class StructuralChunker:
                 content = stripped[level:].strip()
 
                 # Save previous section
-                if current:
-                    sections.append(current)
-                    start_positions.append(current_start)
-                    header_paths.append(list(current_path))
+                if prev_section:
+                    sections.append(prev_section)
+                    start_positions.append(prev_section_start)
+                    header_paths.append(list(current_header_path))
 
                 # Update path stack: pop entries deeper than current level
-                current_path = current_path[: level - 1]
-                current_path.append(content)
+                current_header_path = current_header_path[: level - 1]
+                current_header_path.append(content)
 
-                current_start = text.find(line, current_start)
-                current = line + "\n"
+                prev_section_start = text.find(line, prev_section_start)
+                prev_section = line + "\n"
             else:
-                current += line + "\n"
+                prev_section += line + "\n"
 
         # Don't forget the last section
-        if current:
-            sections.append(current)
-            start_positions.append(current_start)
-            header_paths.append(list(current_path))
+        if prev_section:
+            sections.append(prev_section)
+            start_positions.append(prev_section_start)
+            header_paths.append(list(current_header_path))
 
         return sections, start_positions, header_paths
 
