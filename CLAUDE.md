@@ -1,13 +1,13 @@
 <!-- GSD:project-start source:PROJECT.md -->
-## Project
+## Project | 项目
 
-**Design Doc Review Expert Agent**
+**Design Doc Review Expert Agent** | 设计文档审查专家 Agent
 <!-- GSD:project-end -->
 
 <!-- GSD:stack-start source:research/STACK.md -->
-## Technology Stack
+## Technology Stack | 技术栈
 
-## Recommended Stack
+## Recommended Stack | 推荐技术栈
 ### Core Framework
 | Technology | Version | Purpose | Why |
 |------------|---------|---------|-----|
@@ -24,9 +24,9 @@
 ### LLM Choices
 | Provider | Model | Pros | Cons | Document Review Fit |
 |----------|-------|------|------|---------------------|
-| **Anthropic** | Claude 3.5 Sonnet | Excellent reasoning, cost-effective, strong instruction following | API cost (but lower than GPT-4) | **Best for structured review tasks** |
-| **OpenAI** | GPT-4o | Multimodal natively (images), good all-around | Higher cost, may be overkill for text-only | Good if prototyping image review |
-| **Local** | Llama 3.1 70B / Mixtral | Privacy, no API cost | Requires GPU, quality gap, setup complexity | Only if privacy critical |
+| **MiniMax** | M2.7 / M2.5 | OpenAI-compatible, multimodal (images), strong Chinese/English, free tier | Limited to MiniMax ecosystem | **Best for this project - RECOMMENDED** |
+| **Anthropic** | Claude 3.5 Sonnet | Excellent reasoning, vision built-in | Requires API key, cost | If MiniMax insufficient |
+| **OpenAI** | GPT-4o | Multimodal natively, good all-around | Higher cost | Alternative |
 ### Embedding Models
 | Model | Purpose | Why |
 |-------|---------|-----|
@@ -36,9 +36,9 @@
 ### Image Handling for Prototype Review
 | Approach | Tool | Complexity | Notes |
 |----------|------|------------|-------|
-| **Multimodal LLM** | Claude 3.5 Sonnet (vision) / GPT-4o | Low | Direct image input, no embedding needed |
+| **MiniMax Image Understanding** | MiniMax M2.7 (multimodal) | Low | OpenAI-compatible API, free tier |
+| **Claude Vision** | Claude 3.5 Sonnet (vision) | Low | If MiniMax insufficient |
 | **Image Embedding + RAG** | CLIP (OpenAI) / image-chroma | Medium | For similarity search across prototype database |
-| **Visual Comparison** | Custom pipeline | High | Extract colors, layout, compare against design tokens |
 - Finding similar past prototypes
 - Design consistency across screens
 - Visual style clustering
@@ -54,9 +54,9 @@
 | Category | Recommended | Alternative | Why Not |
 |----------|-------------|-------------|---------|
 | Vector DB | Chroma | Pinecone | Learning project = avoid vendor lock-in + costs |
-| LLM | Claude 3.5 Sonnet | GPT-4o | Cost advantage for text-first; Claude better reasoning |
+| LLM | MiniMax M2.7 | Claude 3.5 Sonnet | No Claude API key; MiniMax supports multimodal |
 | Embedding | bge-m3 | OpenAI embeddings | Better bilingual support, no per-token cost |
-| Image handling | Multimodal LLM | Separate CLIP | Simpler architecture for MVP |
+| Image handling | MiniMax Image Understanding | Separate CLIP | Simpler architecture for MVP |
 ## LangChain vs LangGraph for This Use Case
 - Document loading and splitting
 - Embedding generation
@@ -68,24 +68,45 @@
 - Human-in-the-loop checkpoints
 - Complex agentic loops with memory
 - Orchestrating multiple review types (PRD + prototype)
-## Installation
-# Core dependencies
-# Optional for image handling
+## Installation | 安装
+
+```bash
+# Using uv (fast, Rust-based package manager)
+uv sync
+
+# Or install dependencies directly
+uv add langchain langgraph langchain-openai langchain-community
+uv add chromadb sentence-transformers
+uv add unstructured pdfplumber Pillow
+
 # Verify versions
+uv pip show langchain langgraph chromadb | grep -E "^Name:|^Version:"
+```
 ## Architecture Pattern for Learning
 ## Phase 1 Specific Recommendations
 - Pinecone (only if Chroma insufficient)
-- GPT-4o (only if Claude vision inadequate for prototypes)
+- Claude Vision (only if MiniMax vision inadequate for prototypes)
 - CLIP embeddings (only if image similarity search needed)
 ## Confidence Assessment
 | Component | Confidence | Notes |
 |-----------|------------|-------|
 | LangChain/LangGraph roles | MEDIUM | Well-established patterns, official docs exist |
 | Vector DB comparison | LOW | Web search unavailable; recommend verification |
-| LLM recommendations | MEDIUM | Claude/GPT known quantities; verify current pricing |
+| LLM recommendations | MEDIUM | MiniMax confirmed multimodal via platform docs |
 | Chroma recommendation | MEDIUM | Known to be learning-friendly; verify scalability |
 | bge-m3 for bilingual | LOW | Training data; verify with benchmarks for Chinese |
-## Verification Checklist Before Implementation
+## Verification Checklist Before Implementation | 实施前验证清单
+
+```bash
+# Check uv is installed
+uv --version
+
+# Verify Python version
+python --version  # Should be 3.11+
+
+# Verify LangChain + LangGraph compatibility
+python -c "import langchain; import langgraph; print('OK')"
+```
 # Check current versions (required before starting)
 # Verify LangChain + LangGraph compatibility
 # (Should work together, but verify on your env)
@@ -95,11 +116,11 @@
 - LangGraph docs: https://langchain-ai.github.io/langgraph/ (verify current)
 - Chroma docs: https://docs.trychroma.com (verify current)
 - bge-m3: Hugging Face model card (verify multilingual benchmarks)
-- Anthropic Claude: https://docs.anthropic.com (verify current pricing/models)
+- MiniMax API: https://platform.minimaxi.com/docs (verified 2026/04/16 - supports image understanding)
 ## Gaps to Address
 - [ ] Verify current LangChain/LangGraph versions (breaking changes common)
 - [ ] Confirm bge-m3 performance vs voyage-multilingual for Chinese/English
-- [ ] Benchmark Claude 3.5 Sonnet vision vs GPT-4o for prototype review
+- [ ] Test MiniMax M2.7 image understanding for prototype review
 - [ ] Test Chroma at 100+ page scale (may need Qdrant migration path)
 <!-- GSD:stack-end -->
 
@@ -110,7 +131,7 @@ Conventions not yet established. Will populate as patterns emerge during develop
 <!-- GSD:conventions-end -->
 
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
-## Architecture
+## Architecture | 架构
 
 Architecture not yet mapped. Follow existing patterns found in the codebase.
 <!-- GSD:architecture-end -->

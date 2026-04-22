@@ -534,22 +534,22 @@ for doc, meta, distance in zip(
 
 **If this table is empty:** All claims in this research were verified or cited - no user confirmation needed.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **BM25 library choice**
    - What we know: `rank_bm25` is the standard Python BM25 library
    - What's unclear: Whether LangChain has built-in BM25 worth using instead
-   - Recommendation: Start with `rank_bm25` for explicit control; switch to LangChain BM25 if integration is cleaner
+   - Resolution: Plans use `rank_bm25` — resolved per D-04/D-05 locked decisions
 
 2. **Token counting for chunk size**
    - What we know: D-01 specifies 500-800 tokens
    - What's unclear: Which tokenization method (tiktoken, HuggingFace tokenizer, or approximate char-based)
-   - Recommendation: Use `tiktoken` for OpenAI-compatible tokenization; approximate with 4 chars/token if not available
+   - Resolution: Plans use 4 chars/token approximation — resolved per D-01 locked decision
 
 3. **Chroma vs Qdrant for 100+ pages**
    - What we know: CLAUDE.md recommends Chroma for learning project
    - What's unclear: Performance at 100+ page scale
-   - Recommendation: Start with Chroma; migrate to Qdrant if retrieval latency unacceptable
+   - Resolution: Plans use Chroma — resolved per CLAUDE.md recommendation
 
 ## Environment Availability
 

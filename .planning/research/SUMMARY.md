@@ -1,7 +1,9 @@
-# Research Summary: Design Doc Review Expert Agent
+# Research Summary: Design Doc Review Expert Agent | 研究总结：设计文档审查专家 Agent
 
 **Project:** AI-Powered Design Document Review System
+**项目：** AI 驱动的设计文档审查系统
 **Synthesized:** 2026/04/14
+**Updated:** 2026/04/16 (LLM switch: Claude → MiniMax)
 **Confidence:** MEDIUM (based on established patterns; web search unavailable for verification)
 
 ---
@@ -27,9 +29,9 @@ This project builds an AI-powered design document review agent that combines RAG
 | **Framework** | LangChain ^0.3.x + LangGraph ^0.2.x | Required per project constraints; complementary |
 | **Language** | Python 3.11+ | Native LangChain/LangGraph support |
 | **Vector DB** | Chroma (local) | Zero setup, learning-friendly, swappable to Qdrant/Pinecone later |
-| **LLM** | Claude 3.5 Sonnet | Best reasoning for compliance checking, cost-effective, strong bilingual |
+| **LLM** | MiniMax M2.7 | OpenAI-compatible, multimodal, strong bilingual, free tier |
 | **Embeddings** | bge-m3 | Open source, bilingual Chinese/English, self-hostable |
-| **Image Handling** | Claude Vision (multimodal) | No separate pipeline needed for MVP |
+| **Image Handling** | MiniMax Image Understanding | Same API, no separate pipeline needed |
 
 **Verification required before implementation:** Check current versions with `pip show langchain langgraph chromadb`.
 
@@ -133,8 +135,8 @@ ReviewState = {
 | Phase | Needs Deeper Research | Notes |
 |-------|----------------------|-------|
 | Phase 1 | Verify bge-m3 vs voyage-multilingual | Bilingual retrieval quality untested |
-| Phase 2 | Confirm Claude 3.5 Sonnet reasoning quality | For compliance checking specifically |
-| Phase 4 | Prototype OCR + vision validation | Image review pitfalls poorly documented |
+| Phase 2 | Test MiniMax M2.7 reasoning quality | For compliance checking specifically |
+| Phase 4 | Test MiniMax image understanding vs Claude Vision | Image review quality comparison |
 | Cross-cutting | Current LangChain/LangGraph version compatibility | Breaking changes common |
 
 ---
@@ -148,13 +150,13 @@ ReviewState = {
 | **Architecture** | MEDIUM-HIGH | Standard RAG patterns: HIGH; LangChain/LangGraph specifics: MEDIUM |
 | **Pitfalls** | MEDIUM | Domain expertise; some gaps (Chinese RAG, knowledge base versioning) |
 
-### Gaps to Address
+### Gaps to Address | 待解决问题
 
 - [ ] Verify current LangChain/LangGraph versions (breaking changes common in 0.3.x)
 - [ ] Benchmark bge-m3 vs voyage-multilingual for Chinese/English bilingual retrieval
 - [ ] Test Chroma at 100+ page scale (may need Qdrant migration path)
 - [ ] Validate chunking strategy against actual design standards document structure
-- [ ] Confirm Claude 3.5 Sonnet vision vs GPT-4o for prototype review
+- [ ] Test MiniMax M2.7 image understanding for prototype review
 - [ ] Research PRD schema standards (Jira, Confluence templates)
 
 ---

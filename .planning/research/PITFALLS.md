@@ -1,6 +1,7 @@
-# Domain Pitfalls
+# Domain Pitfalls | 领域陷阱
 
 **Domain:** RAG + Agent Document Review System (Design Doc Review Expert Agent)
+**领域：** RAG + Agent 文档审查系统（设计文档审查专家 Agent）
 **Researched:** 2026/04/14
 **Confidence:** MEDIUM (domain expertise from training data; cannot verify with current external sources due to tool restrictions)
 

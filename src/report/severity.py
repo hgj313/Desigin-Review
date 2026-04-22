@@ -26,17 +26,15 @@ RULE_SEVERITY_MAP = {
 
 
 class SeverityAssessment(BaseModel):
-    """LLM severity assessment per D-14.
+    """LLM severity assessment.
 
     Attributes:
         suggested_severity: LLM's suggested severity level.
-        reasoning_en: English reasoning for the suggestion.
         reasoning_zh: Chinese reasoning for the suggestion.
         should_elevate: Whether LLM believes escalation is warranted.
     """
 
     suggested_severity: str  # Critical, Major, Minor, Suggestion
-    reasoning_en: str
     reasoning_zh: str
     should_elevate: bool
 
@@ -110,7 +108,6 @@ def assess_severity_with_llm(
     format_instructions = """Return JSON with:
 {
     "suggested_severity": "Critical|Major|Minor|Suggestion",
-    "reasoning_en": "English explanation",
     "reasoning_zh": "Chinese explanation",
     "should_elevate": true|false
 }"""
@@ -149,7 +146,6 @@ def assess_severity_with_llm(
 
         return SeverityAssessment(
             suggested_severity=result["suggested_severity"],
-            reasoning_en=result["reasoning_en"],
             reasoning_zh=result["reasoning_zh"],
             should_elevate=result["should_elevate"],
         )
@@ -157,7 +153,6 @@ def assess_severity_with_llm(
         # If parsing fails, return a neutral assessment
         return SeverityAssessment(
             suggested_severity="Minor",
-            reasoning_en=f"Failed to parse LLM response: {str(e)}",
             reasoning_zh=f"无法解析LLM响应：{str(e)}",
             should_elevate=False,
         )

@@ -1,8 +1,10 @@
-# Technology Stack
+# Technology Stack | 技术栈
 
 **Project:** Design Doc Review Expert Agent
+**项目：** 设计文档审查专家 Agent
 **Researched:** 2026/04/14
-**Confidence:** LOW-MEDIUM (web search unavailable; verify versions with `npm show` before use)
+**Updated:** 2026/04/16 (LLM switch: Claude → MiniMax)
+**Confidence:** LOW-MEDIUM (web search unavailable; verify versions before use)
 
 ## Recommended Stack
 
@@ -37,26 +39,26 @@
 pip show chromadb  # Check current version
 ```
 
-### LLM Choices
+### LLM Choices | LLM 选择
 
 | Provider | Model | Pros | Cons | Document Review Fit |
 |----------|-------|------|------|---------------------|
-| **Anthropic** | Claude 3.5 Sonnet | Excellent reasoning, cost-effective, strong instruction following | API cost (but lower than GPT-4) | **Best for structured review tasks** |
-| **OpenAI** | GPT-4o | Multimodal natively (images), good all-around | Higher cost, may be overkill for text-only | Good if prototyping image review |
-| **Local** | Llama 3.1 70B / Mixtral | Privacy, no API cost | Requires GPU, quality gap, setup complexity | Only if privacy critical |
+| **MiniMax** | M2.7 / M2.5 | OpenAI-compatible, multimodal (images), strong Chinese/English, free tier | Limited to MiniMax ecosystem | **Best for this project - RECOMMENDED** |
+| **Anthropic** | Claude 3.5 Sonnet | Excellent reasoning, vision built-in | Requires API key, cost | If MiniMax insufficient |
+| **OpenAI** | GPT-4o | Multimodal natively, good all-around | Higher cost, may be overkill | Good for prototyping |
 
-**Recommendation:** **Claude 3.5 Sonnet** for this project because:
-1. Best-in-class reasoning for compliance checking
-2. Cost-effective for document review (not image-heavy at MVP)
-3. Strong Chinese/English bilingual support
-4. Lower cost than GPT-4o for text-first workloads
-5. Easy migration path: keep API-based for learning
+**Recommendation:** **MiniMax M2.7** because:
+1. OpenAI-compatible API → `langchain-openai` with `base_url` config
+2. Multimodal support (image understanding) confirmed
+3. Strong Chinese/English bilingual support (国产优势)
+4. Token Plan with free tier
+5. No Claude API key needed
 
-**If image review is primary concern:** Consider GPT-4o for native multimodal (no separate vision model needed).
+**If MiniMax vision insufficient:** Fall back to Claude Vision (separate image pipeline).
 
 **Verification:**
 ```bash
-pip show langchain-anthropic  # Check LangChain integration version
+pip show langchain-openai  # For MiniMax (OpenAI-compatible)
 ```
 
 ### Embedding Models
@@ -147,17 +149,19 @@ LangChain Components          LangGraph Workflow
 ## Installation
 
 ```bash
-# Core dependencies
-pip install langchain langgraph langchain-anthropic langchain-community
-pip install chromadb sentence-transformers
-pip install unstructured pdfplumber Pillow
+# Using uv (fast, Rust-based package manager)
+uv sync
+
+# Or add dependencies
+uv add langchain langgraph langchain-openai langchain-community
+uv add chromadb sentence-transformers
+uv add unstructured pdfplumber Pillow
 
 # Optional for image handling
-pip install torch torchvision  # For CLIP if needed
-pip install anthropic  # Direct Claude API
+uv add torch torchvision  # For CLIP if needed
 
 # Verify versions
-pip show langchain langgraph chromadb | grep -E "^Name:|^Version:"
+uv pip show langchain langgraph chromadb | grep -E "^Name:|^Version:"
 ```
 
 ## Architecture Pattern for Learning
@@ -200,53 +204,49 @@ pip show langchain langgraph chromadb | grep -E "^Name:|^Version:"
 
 **Start with these exact technologies:**
 1. **Chroma** (local) - no setup, free, sufficient for 100 pages
-2. **Claude 3.5 Sonnet** (API) - best reasoning, good pricing
+2. **MiniMax M2.7** (API) - OpenAI-compatible, multimodal, strong bilingual
 3. **bge-m3** (local) - bilingual embeddings via sentence-transformers
 4. **LangChain + LangGraph** - as specified in project constraints
 
 **Defer to Phase 2:**
 - Pinecone (only if Chroma insufficient)
-- GPT-4o (only if Claude vision inadequate for prototypes)
+- Claude Vision (only if MiniMax vision inadequate for prototypes)
 - CLIP embeddings (only if image similarity search needed)
 
-## Confidence Assessment
+## Confidence Assessment | 置信度评估
 
 | Component | Confidence | Notes |
 |-----------|------------|-------|
 | LangChain/LangGraph roles | MEDIUM | Well-established patterns, official docs exist |
 | Vector DB comparison | LOW | Web search unavailable; recommend verification |
-| LLM recommendations | MEDIUM | Claude/GPT known quantities; verify current pricing |
+| LLM recommendations | MEDIUM | MiniMax confirmed multimodal via platform docs |
 | Chroma recommendation | MEDIUM | Known to be learning-friendly; verify scalability |
 | bge-m3 for bilingual | LOW | Training data; verify with benchmarks for Chinese |
 
-## Verification Checklist Before Implementation
+## Verification Checklist Before Implementation | 实施前验证清单
 
 ```bash
 # Check current versions (required before starting)
-npm show langchain version
-npm show langgraph version  
-npm show chromadb version
-pip show anthropic | grep Version
-pip show sentence-transformers | grep Version
+uv pip show langchain langgraph chromadb | grep -E "^Name:|^Version:"
+uv pip show sentence-transformers | grep Version
 
 # Verify LangChain + LangGraph compatibility
 # (Should work together, but verify on your env)
-pip install langchain && pip install langgraph
 python -c "import langchain; import langgraph; print('OK')"
 ```
 
-## Sources
+## Sources | 参考资料
 
 - **Confidence: LOW** (web search unavailable; based on training data)
 - LangChain docs: https://python.langchain.com (verify current)
 - LangGraph docs: https://langchain-ai.github.io/langgraph/ (verify current)
 - Chroma docs: https://docs.trychroma.com (verify current)
 - bge-m3: Hugging Face model card (verify multilingual benchmarks)
-- Anthropic Claude: https://docs.anthropic.com (verify current pricing/models)
+- MiniMax API: https://platform.minimaxi.com/docs (verify current models)
 
-## Gaps to Address
+## Gaps to Address | 待解决问题
 
 - [ ] Verify current LangChain/LangGraph versions (breaking changes common)
 - [ ] Confirm bge-m3 performance vs voyage-multilingual for Chinese/English
-- [ ] Benchmark Claude 3.5 Sonnet vision vs GPT-4o for prototype review
+- [ ] Test MiniMax M2.7 vision vs Claude Vision for prototype review
 - [ ] Test Chroma at 100+ page scale (may need Qdrant migration path)

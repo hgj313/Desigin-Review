@@ -1,7 +1,9 @@
-# Architecture Patterns: RAG-Powered Agent System
+# Architecture Patterns: RAG-Powered Agent System | 架构模式：RAG驱动的 Agent 系统
 
 **Project:** Design Doc Review Expert Agent
+**项目：** 设计文档审查专家 Agent
 **Researched:** 2026/04/14
+**Updated:** 2026/04/16 (LLM switch: Claude → MiniMax)
 **Confidence:** MEDIUM-HIGH (standard RAG patterns: HIGH; LangChain/LangGraph specifics: MEDIUM - web search blocked)
 
 ## Executive Summary
@@ -227,13 +229,14 @@ Vision Analysis Node --> Extract layout, color, typography findings
 Findings normalized to same schema as text reviews
 ```
 
-### Options for Image Processing
+### Options for Image Processing | 图像处理选项
 
 | Option | Pros | Cons | Recommendation |
 |--------|------|------|----------------|
-| **GPT-4V / Claude Vision** | High quality, no extra infrastructure | API cost per image | Best for learning project |
+| **MiniMax Image Understanding** | OpenAI-compatible, multimodal, free tier | Limited to MiniMax ecosystem | **Best for this project** |
+| **Claude Vision** | High quality, no extra infrastructure | Requires API key | If MiniMax insufficient |
 | **LLaVA + open-source** | Local, no API cost | Lower quality | Future phase |
-| **Gemini Pro Vision** | Good quality, competitive pricing | Google ecosystem | Alternative |
+| **GPT-4V** | Good quality, well-documented | Higher cost | Alternative |
 
 ### Integration with Review Workflow
 
@@ -403,16 +406,17 @@ workflow.add_edge("retrieve", [review_nodes])  # Fan-out to all review nodes
 
 ---
 
-## Key Architecture Decisions Summary
+## Key Architecture Decisions Summary | 关键架构决策总结
 
 | Decision | Recommended | Rationale |
 |----------|-------------|-----------|
 | **Workflow orchestration** | LangGraph | Stateful, supports cycles, better than LangChain's LinearAgent |
 | **Retrieval infrastructure** | LangChain | Mature abstractions, easy vector store integration |
 | **Review execution** | Parallel fan-out | Independent dimensions, faster |
-| **Image handling** | GPT-4V/Claude Vision | High quality, no local GPU needed |
+| **Image handling** | MiniMax Image Understanding | OpenAI-compatible, multimodal, free tier |
 | **Vector store** | Chroma (initial) | Local, easy setup, learning-friendly |
 | **State management** | LangGraph `TypedDict` | Type-safe, explicit, debuggable |
+| **LLM** | MiniMax M2.7 | OpenAI-compatible API, no Claude key needed |
 
 ---
 
@@ -428,11 +432,12 @@ workflow.add_edge("retrieve", [review_nodes])  # Fan-out to all review nodes
 
 ---
 
-## Sources
+## Sources | 参考资料
 
 - LangGraph Documentation: https://python.langchain.com/docs/langgraph (official, but fetch blocked)
 - LangChain RAG Tutorials: https://python.langchain.com/docs/tutorials/rag/ (official, but fetch blocked)
 - Agentic RAG Patterns: https://python.langchain.com/docs/tutorials/agentic_rag/ (official, but fetch blocked)
 - Multi-modal RAG Survey (2024): Academic patterns, not vendor-specific
+- MiniMax API: https://platform.minimaxi.com/docs (verified 2026/04/16 - supports image understanding)
 
 **Note:** Web search was blocked during research. All LangChain/LangGraph specifics are based on training data (6-18 months stale). Recommend verifying integration patterns against current official docs before implementation.

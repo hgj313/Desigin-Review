@@ -117,7 +117,12 @@ A RAG-powered agent that reviews PRD documents and prototype images against comp
 4. LangGraph cycles enable re-retrieval when initial findings are inconclusive
 5. End-to-end workflow runs without deadlocks or infinite loops
 
-**Plans:** TBD
+**Plans:** 3 plans
+
+**Plan list:**
+- [ ] 04-01-PLAN.md — Error handling: centralized error handler with retry logic (D-25)
+- [ ] 04-02-PLAN.md — Convergence check: findings stability detection across iterations (D-26)
+- [ ] 04-03-PLAN.md — Unified workflow: review() entry point, ReviewResponse, confidence zones (D-27 to D-33)
 
 **UI hint:** no
 
@@ -196,4 +201,4 @@ Phase 4 (Polish and Integration)
 
 ---
 
-*Last updated: 2026/04/14*
+*Last updated: 2026/04/17*

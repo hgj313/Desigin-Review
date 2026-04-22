@@ -35,7 +35,7 @@ class MiniMaxVisionClient:
             api_key: MiniMax API key. Defaults to MINIMAX_API_KEY env var.
         """
         self.llm = ChatOpenAI(
-            model="MiniMax/M2.7",
+            model="MiniMax-M2.7",
             api_key=api_key or os.environ.get("MINIMAX_API_KEY"),
             base_url="https://api.minimax.chat/v1",
         )

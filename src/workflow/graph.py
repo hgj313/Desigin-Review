@@ -231,6 +231,9 @@ def create_ingestion_graph() -> StateGraph:
     workflow.add_node("embed_chunks", embed_chunks_node)
     workflow.add_node("store_vectors", store_vectors_node)
 
+    # Entry point
+    workflow.add_edge("__start__", "load_document")
+
     # Define edges
     workflow.add_edge("load_document", "chunk_document")
     workflow.add_edge("chunk_document", "embed_chunks")
@@ -454,11 +457,13 @@ def generate_report_node(state: PRDReviewState) -> PRDReviewState:
     """Generate compliance report from findings.
 
     Uses refined_findings if available, otherwise all_findings.
+    Note: refined_findings may be None even if key exists, so we check explicitly.
     """
     from src.report.markdown import generate_compliance_report
     from datetime import datetime
 
-    findings = state.get("refined_findings", state["all_findings"])
+    refined = state.get("refined_findings")
+    findings = refined if refined is not None else state["all_findings"]
     metadata = {
         "collection_name": state["collection_name"],
         "review_depth": state["review_depth"],
@@ -738,6 +743,9 @@ def create_query_graph() -> StateGraph:
     workflow.add_node("query_knowledge", query_knowledge_node)
     workflow.add_node("format_results", format_results_node)
     workflow.add_node("standard_not_found", standard_not_found_node)
+
+    # Entry point
+    workflow.add_edge("__start__", "query_knowledge")
 
     # Conditional routing based on standard_found
     def should_query_standard_found(state: QueryState) -> Literal["format_results", "standard_not_found"]:

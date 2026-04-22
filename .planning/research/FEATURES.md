@@ -1,23 +1,25 @@
-# Feature Landscape
+# Feature Landscape | 功能全景
 
 **Domain:** AI-Powered Design Document Review
+**领域：** AI 驱动的设计文档审查
 **Project:** Design Doc Review Expert Agent
+**项目：** 设计文档审查专家 Agent
 **Researched:** 2026/04/14
 **Confidence:** MEDIUM (based on established patterns; web search unavailable for verification)
 
-## Table of Contents
+## Table of Contents | 目录
 
-1. [PRD Document Review Features](#prd-document-review-features)
-2. [Prototype/Image Review Features](#prototypeimage-review-features)
-3. [RAG Knowledge Base Features](#rag-knowledge-base-features)
-4. [Compliance Reporting Features](#compliance-reporting-features)
-5. [Anti-Features](#anti-features)
-6. [Feature Dependencies](#feature-dependencies)
-7. [MVP Recommendation](#mvp-recommendation)
+1. [PRD Document Review Features](#prd-document-review-features) | PRD 文档审查功能
+2. [Prototype/Image Review Features](#prototypeimage-review-features) | 原型/图像审查功能
+3. [RAG Knowledge Base Features](#rag-knowledge-base-features) | RAG 知识库功能
+4. [Compliance Reporting Features](#compliance-reporting-features) | 合规报告功能
+5. [Anti-Features](#anti-features) | 反模式功能
+6. [Feature Dependencies](#feature-dependencies) | 功能依赖
+7. [MVP Recommendation](#mvp-recommendation) | MVP 推荐
 
 ---
 
-## PRD Document Review Features
+## PRD Document Review Features | PRD 文档审查功能
 
 ### Table Stakes
 
@@ -43,7 +45,7 @@ Features that set a review tool apart. Not expected, but valued when done well.
 | **Effort Estimation Hints** | Suggest complexity factors based on requirement scope | Medium | Pattern matching + heuristics |
 | **Prioritization Consistency** | Verify priority labels align with requirement complexity | Medium | Rule-based with training data |
 
-### Anti-Features (Document Review)
+### Anti-Features (Document Review) | 反模式功能（文档审查）
 
 | Anti-Feature | Why Avoid | What to Do Instead |
 |--------------|-----------|-------------------|
@@ -53,7 +55,7 @@ Features that set a review tool apart. Not expected, but valued when done well.
 
 ---
 
-## Prototype/Image Review Features
+## Prototype/Image Review Features | 原型/图像审查功能
 
 ### Table Stakes
 
@@ -76,7 +78,7 @@ Features that set a review tool apart. Not expected, but valued when done well.
 | **Prototype Flow Analysis** | Verify navigation paths match PRD user flows | High | Image sequence + transition analysis |
 | **Annotation-to-Design Mapping** | Cross-reference design comments with visual elements | High | Requires OCR + spatial reasoning |
 
-### Anti-Features (Image Review)
+### Anti-Features (Image Review) | 反模式功能（图像审查）
 
 | Anti-Feature | Why Avoid | What to Do Instead |
 |--------------|-----------|-------------------|
@@ -86,7 +88,7 @@ Features that set a review tool apart. Not expected, but valued when done well.
 
 ---
 
-## RAG Knowledge Base Features
+## RAG Knowledge Base Features | RAG 知识库功能
 
 ### Table Stakes
 
@@ -136,7 +138,7 @@ Features that set a review tool apart. Not expected, but valued when done well.
 
 ---
 
-## Compliance Reporting Features
+## Compliance Reporting Features | 合规报告功能
 
 ### Table Stakes
 
@@ -159,7 +161,7 @@ Features that set a review tool apart. Not expected, but valued when done well.
 
 ---
 
-## Feature Dependencies
+## Feature Dependencies | 功能依赖
 
 ```
 PRD Document Review
@@ -199,7 +201,7 @@ Compliance Reporting
 
 ---
 
-## MVP Recommendation
+## MVP Recommendation | MVP 推荐
 
 ### Prioritize (Phase 1)
 

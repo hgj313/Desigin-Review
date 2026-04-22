@@ -57,6 +57,15 @@ docs/
 
 # Local test files
 tests/manu_test.py
+test_e2e.py
+
+# Environment
+.env
+
+# Local directories
+Prd-test/
+reports/
+scripts/
 
 # OS
 .DS_Store

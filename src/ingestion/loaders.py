@@ -1,12 +1,13 @@
 """Document loaders for multi-format document ingestion.
 
-Supports: PDF, Markdown, HTML, DOCX
+Supports: PDF, Markdown, HTML, DOCX, PNG/JPG/JPEG/WEBP (via MiniMax Vision API)
 Uses UnstructuredFileLoader as primary, PDFPlumberLoader for PDF tables.
 
 References:
 - D-06: Support Markdown, PDF, HTML, DOCX
 - D-07: Use unstructured for parsing
 - D-08: Use pdfplumber for PDF tables
+- D-20: MiniMax Image Understanding via OpenAI-compatible API
 """
 
 from pathlib import Path
@@ -15,15 +16,18 @@ from typing import Optional
 from langchain_community.document_loaders import PDFPlumberLoader, UnstructuredFileLoader
 from langchain_core.documents import Document
 
+from src.ingestion.image_loader import load_image
 
-SUPPORTED_EXTENSIONS = {".pdf", ".md", ".html", ".docx"}
+
+SUPPORTED_EXTENSIONS = {".pdf", ".md", ".html", ".docx", ".png", ".jpg", ".jpeg", ".webp"}
 
 
 def load_document(file_path: str, metadata: Optional[dict] = None) -> list[Document]:
     """Load document with format-appropriate loader.
 
-    Supported formats: .pdf, .md, .html, .docx
-    Uses UnstructuredFileLoader as primary, PDFPlumberLoader for PDF tables.
+    Supported formats: .pdf, .md, .html, .docx, .png, .jpg, .jpeg, .webp
+    Uses UnstructuredFileLoader as primary, PDFPlumberLoader for PDF tables,
+    and MiniMax Vision API for images.
 
     Args:
         file_path: Path to the document file.
@@ -54,6 +58,8 @@ def load_document(file_path: str, metadata: Optional[dict] = None) -> list[Docum
         docs = _load_pdf(file_path, base_metadata)
     elif suffix == ".md":
         docs = _load_markdown(file_path, base_metadata)
+    elif suffix in {".png", ".jpg", ".jpeg", ".webp"}:
+        docs = load_image(file_path, base_metadata)
     else:
         # .html, .docx
         docs = _load_with_unstructured(file_path, base_metadata)
@@ -62,7 +68,7 @@ def load_document(file_path: str, metadata: Optional[dict] = None) -> list[Docum
 
 
 def _load_markdown(file_path: str, metadata: dict) -> list[Document]:
-    """Load Markdown file with UnstructuredFileLoader in elements mode.
+    """Load Markdown file with simple file reading.
 
     Args:
         file_path: Path to the Markdown file.
@@ -71,17 +77,15 @@ def _load_markdown(file_path: str, metadata: dict) -> list[Document]:
     Returns:
         List of Document objects.
     """
-    loader = UnstructuredFileLoader(file_path, mode="elements")
-    docs = loader.load()
-
-    # Add Markdown-specific metadata
     path = Path(file_path)
-    for doc in docs:
-        doc.metadata.update(metadata)
-        doc.metadata.setdefault("file_name", path.name)
-        doc.metadata.setdefault("file_path", str(path))
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
 
-    return docs
+    doc = Document(page_content=content, metadata=dict(metadata))
+    doc.metadata.setdefault("file_name", path.name)
+    doc.metadata.setdefault("file_path", str(path))
+
+    return [doc]
 
 
 def _load_pdf(file_path: str, metadata: dict) -> list[Document]:
