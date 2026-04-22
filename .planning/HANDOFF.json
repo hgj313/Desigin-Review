@@ -1,41 +1,35 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-17T09:34:03.456Z",
-  "phase": "04",
-  "phase_name": "polish-and-integration",
-  "phase_dir": ".planning/phases/04-polish-and-integration",
-  "plan": "04-04",
-  "task": 3,
-  "total_tasks": 3,
-  "status": "completed",
-  "completed_tasks": [
-    {"id": 1, "name": "Wire image review convergence detection", "status": "done", "commit": "7c9f611"},
-    {"id": 2, "name": "Wire query_with_version_filter in validate_color_node", "status": "done", "commit": "366f924"},
-    {"id": 3, "name": "Wire query_with_version_filter in validate_terminology_node", "status": "done", "commit": "ffbb0d0"}
+  "timestamp": "2026-04-22T12:44:53.295Z",
+  "phase": "07",
+  "phase_name": "ddd-skeleton",
+  "phase_dir": "07-ddd-skeleton",
+  "plan": 1,
+  "task": 0,
+  "total_tasks": 5,
+  "status": "paused",
+  "completed_tasks": [],
+  "remaining_tasks": [
+    {"id": 1, "name": "Create domain shared kernel (Finding, Severity, ReviewContext)", "status": "not_started"},
+    {"id": 2, "name": "Create Ingestion context (Document, Chunk, services, repositories)", "status": "not_started"},
+    {"id": 3, "name": "Create Review context (PRDReviewer, PrototypeReviewer, services)", "status": "not_started"},
+    {"id": 4, "name": "Create Reporting context (Report, services)", "status": "not_started"},
+    {"id": 5, "name": "Create domain __init__.py exports", "status": "not_started"}
   ],
-  "remaining_tasks": [],
   "blockers": [],
   "human_actions_pending": [
-    {"action": "Run phase verification to confirm goal achievement", "context": "Code review fix completed but verify_phase_goal step was interrupted before completion", "blocking": true}
+    {"action": "Approve Phase 7 plan and execute", "context": "Plan created but not yet executed. Awaiting user approval to proceed with execution.", "blocking": true}
   ],
   "decisions": [
-    {"decision": "Wire should_refine_image_node to replace lambda in create_image_review_graph", "rationale": "Mirror PRD review convergence pattern for image review", "phase": "04"},
-    {"decision": "Replace store.collection.get() with query_with_version_filter in color.py and terminology.py", "rationale": "Properly check both effective_date and superseded_date for KB versioning", "phase": "04"},
-    {"decision": "Add all validators to PRD review refinement loop (not just validate_structure)", "rationale": "CR-01 from code review fix - all validators should re-run across iterations", "phase": "04"}
+    {"decision": "Full DDD rewrite in src_v2/, not incremental integration", "rationale": "User rejected incremental approach - wanted complete new architecture separate from v1.1 (src/)"},
+    {"decision": "DDD architecture: 3 bounded contexts + 1 shared kernel", "rationale": "Ingestion, Review, Reporting as bounded contexts; shared kernel for Finding, Severity, ReviewContext"},
+    {"decision": "Rollback Phase 7 RAG work", "rationale": "Phase 7 was executed incorrectly as incremental integration instead of DDD rewrite. Hard reset to pre-Phase 7 state."},
+    {"decision": "New v2.0 code in src_v2/, old code in src/ as reference only", "rationale": "User explicitly required separation to avoid confusion"}
   ],
   "uncommitted_files": [
     ".planning/ROADMAP.md",
-    ".planning/STATE.md",
-    ".planning/config.json",
-    ".planning/phases/01-core-rag-pipeline/01-RESEARCH.md",
-    ".planning/research/ARCHITECTURE.md",
-    ".planning/research/FEATURES.md",
-    ".planning/research/PITFALLS.md",
-    ".planning/research/STACK.md",
-    ".planning/research/SUMMARY.md",
-    "CLAUDE.md",
-    "pyproject.toml"
+    ".planning/phases/07-ddd-skeleton/07-01-PLAN.md"
   ],
-  "next_action": "Continue execute-phase 04 to complete verify_phase_goal step - run gsd-verifier to confirm phase goal achievement",
-  "context_notes": "Was in execute-phase 04 --gaps-only completing gap closure plan 04-04. Completed all 3 tasks: (1) wired image review convergence detection, (2) wired query_with_version_filter in validate_color_node, (3) wired query_with_version_filter in validate_terminology_node. Then ran code review which found 2 critical bugs (missing datetime imports) and 3 warnings. Applied fixes via gsd-code-review-fix: 4 of 5 fixed. Phase verification (gsd-verifier) was the next step when /gsd-pause-work was invoked."
+  "next_action": "Execute Phase 7 with /gsd-execute-phase 7 - creates src_v2/domain/ skeleton",
+  "context_notes": "Paused immediately after creating Phase 7 plan. User wants to review plan before execution. v2.0 DDD rewrite confirmed - new src_v2/ directory, src/ is reference only. Phase 7 establishes domain layer skeleton (entities, services, repositories as interfaces) for Phases 8-10 to build upon."
 }
