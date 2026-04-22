@@ -9,8 +9,6 @@ References:
 - AGT-03: Agent explicitly states Standard Not Found when no relevant guidance
 """
 
-from typing import Optional
-
 from langchain_core.documents import Document
 
 

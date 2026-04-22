@@ -50,6 +50,14 @@ docs/_build/
 .coverage
 htmlcov/
 
+# GSD workflow artifacts
+.planning/
+Design-Reference/
+docs/
+
+# Local test files
+tests/manu_test.py
+
 # OS
 .DS_Store
 Thumbs.db
