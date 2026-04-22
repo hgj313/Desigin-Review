@@ -7,6 +7,8 @@ from typing import Optional
 
 from src_v2.domain.shared.value_objects import ChunkId, DocumentId, StandardId
 
+__all__ = ["DocumentContentType", "Document", "Chunk", "Standard"]
+
 
 class DocumentContentType(Enum):
     """Content classification for ingested documents."""

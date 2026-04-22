@@ -11,7 +11,6 @@ __all__ = [
     "ReviewResult",
     "ReviewDimension",
     "SeverityLevel",
-    "suggestion",
 ]
 
 
