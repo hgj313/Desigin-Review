@@ -165,7 +165,7 @@ class HybridRetriever:
                 doc = Document(
                     page_content=doc_results["documents"][0],
                     metadata=doc_results["metadatas"][0]
-                    if doc_results["metadatas"]
+                    if doc_results.get("metadatas")
                     else {},
                 )
                 results.append((doc, float(combined_scores[idx])))

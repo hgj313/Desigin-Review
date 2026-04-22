@@ -96,10 +96,23 @@ class StructuralChunker:
             if self._is_markdown_with_headers(doc.page_content):
                 chunked = self._split_markdown_with_headers(doc)
             else:
-                # Standard splitting
-                chunked = self.splitter.create_documents(
+                # Standard splitting (PDF, TXT, etc.)
+                section_docs = self.splitter.create_documents(
                     [doc.page_content], metadatas=[doc.metadata]
                 )
+                # Preserve structural metadata for non-markdown documents
+                for section_doc in section_docs:
+                    # Use page number for PDF sections, fall back to file_name
+                    page = section_doc.metadata.get("page")
+                    section_doc.metadata["section"] = (
+                        f"page_{page}" if page is not None
+                        else section_doc.metadata.get("file_name", "document")
+                    )
+                    # Preserve cumulative position from loader's start_index if available
+                    section_doc.metadata["chunk_start_index"] = section_doc.metadata.get(
+                        "start_index", 0
+                    )
+                chunked = section_docs
 
             chunks.extend(chunked)
 
@@ -141,7 +154,11 @@ class StructuralChunker:
                 continue
 
             # Build metadata from header path
-            section_meta = {"header_path": header_paths[idx]}
+            path = header_paths[idx]
+            section_meta = {
+                "header_path": path,
+                "section": "/".join(path) if path else "",
+            }
 
             # If section has headers, also store the deepest header
             path = header_paths[idx]
@@ -156,9 +173,9 @@ class StructuralChunker:
 
             # If section is small enough, don't split further
             if self._token_count(section_text) <= self.chunk_size:
-                all_chunks.append(
-                    Document(page_content=section_text, metadata=combined_meta)
-                )
+                chunk = Document(page_content=section_text, metadata=combined_meta)
+                chunk.metadata["chunk_start_index"] = section_start
+                all_chunks.append(chunk)
             else:
                 # Split the section content
                 section_docs = self.splitter.create_documents(

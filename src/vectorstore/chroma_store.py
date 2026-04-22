@@ -113,8 +113,12 @@ class ChromaStore:
         # Generate IDs for documents
         ids = [f"chunk_{self.collection_name}_{i}" for i in range(len(documents))]
 
-        # Extract metadata
-        metadatas = [doc.metadata for doc in documents]
+        # Extract metadata and add original_index for BM25 alignment in hybrid search
+        metadatas = []
+        for i, doc in enumerate(documents):
+            meta = dict(doc.metadata)
+            meta["original_index"] = i
+            metadatas.append(meta)
 
         # Extract document contents
         texts = [doc.page_content for doc in documents]
