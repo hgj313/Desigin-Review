@@ -26,8 +26,8 @@ class IDocumentRepository(Protocol):
 class IChunkRepository(Protocol):
     """Stores and retrieves document chunks with embeddings."""
 
-    def store_chunk(self, chunk: Chunk, embedding: list[float]) -> None:
-        """Persist a chunk with its embedding vector."""
+    def store_chunk(self, chunk: Chunk) -> None:
+        """Persist a chunk with its embedding vector (from chunk.embedding)."""
         ...
 
     def find_similar(self, embedding: list[float], k: int) -> list[tuple[Chunk, float]]:
