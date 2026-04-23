@@ -38,7 +38,7 @@ src_v2/                 # v2.0 全新 DDD 实现
 ## Phase 7-10
 
 - [ ] **Phase 7: DDD 骨架** - 建立领域层骨架、接口定义
-- [ ] **Phase 8: Ingestion + Retrieval** - 实现摄取和检索上下文
+- [x] **Phase 8: Ingestion + Retrieval** - 实现摄取和检索上下文 (completed 2026-04-23)
 - [ ] **Phase 9: Review Context** - 实现审查上下文（核心）
 - [ ] **Phase 10: Reporting + Agent** - 实现报告上下文和 Agent 编排
 
