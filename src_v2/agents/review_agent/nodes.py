@@ -12,6 +12,7 @@ from src_v2.domain.ingestion.entities import Document
 from src_v2.domain.review.services.prd_reviewer import PRDReviewerService
 from src_v2.domain.review.services.prototype_reviewer import PrototypeReviewerService
 from src_v2.domain.review.services.aggregation import aggregate_findings_by_severity
+from src_v2.infrastructure.database.repositories.report_repository import SQLAlchemyReportRepository
 from src_v2.domain.shared.entities import (
     Finding,
     ReviewContext,
@@ -210,16 +211,17 @@ def calculate_compliance_score(findings: list[Finding]) -> int:
 
 
 async def generate_report_node(state: ReviewState) -> dict[str, Any]:
-    """Generate final report from aggregated findings.
+    """Generate final report from aggregated findings and persist to PostgreSQL.
 
-    Per D-08: Called after aggregate_results_node.
-    Uses ReportGenerationService to create Report entity.
+    Per D-08: Called after aggregate_results_node completes.
+    Uses ReportGenerationService to create Report entity, then persists
+    to PostgreSQL via SQLAlchemyReportRepository.
 
     Args:
         state: ReviewState with compliance_score and all findings
 
     Returns:
-        Dict to merge - sets report field
+        dict to merge - sets report field
     """
     prd_findings = state.get("prd_findings", [])
     proto_findings = state.get("proto_findings", [])
@@ -249,6 +251,10 @@ async def generate_report_node(state: ReviewState) -> dict[str, Any]:
     # Generate report
     report_service = ReportGenerationServiceImpl()
     report = report_service.generate_report(review_result, format="report")
+
+    # Persist to PostgreSQL
+    repository = SQLAlchemyReportRepository()
+    await repository.store_async(report)
 
     # Convert report to dict for state storage
     report_dict = {
