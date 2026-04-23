@@ -1,6 +1,6 @@
 """Reporting domain repository interfaces."""
 
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 from src_v2.domain.reporting.entities import Report, TrendRecord
 
@@ -10,6 +10,7 @@ __all__ = [
 ]
 
 
+@runtime_checkable
 class IReportRepository(Protocol):
     """Repository interface for report persistence."""
 
