@@ -37,13 +37,13 @@ src_v2/                 # v2.0 全新 DDD 实现
 
 ## Phase 7-10
 
-- [ ] **Phase 7: DDD 骨架** - 建立领域层骨架、接口定义
+- [x] **Phase 7: DDD 骨架** - 建立领域层骨架、接口定义 (completed 2026-04-22)
 - [x] **Phase 8: Ingestion + Retrieval** - 实现摄取和检索上下文 (completed 2026-04-23)
-- [ ] **Phase 9: Review Context** - 实现审查上下文（核心）
-  - [ ] 09-01-PLAN.md — Foundation: CIEDE2000 + LLM prompts
-  - [ ] 09-02-PLAN.md — PRD Reviewer Service
-  - [ ] 09-03-PLAN.md — Prototype Reviewer Service
-- [ ] **Phase 10: Reporting + Agent** - 实现报告上下文和 Agent 编排
+- [x] **Phase 9: Review Context** - 实现审查上下文（核心）(completed 2026-04-23)
+  - [x] 09-01-PLAN.md — Foundation: CIEDE2000 + LLM prompts
+  - [x] 09-02-PLAN.md — PRD Reviewer Service
+  - [x] 09-03-PLAN.md — Prototype Reviewer Service
+- [x] **Phase 10: Reporting + Agent** - 实现报告上下文和 Agent 编排 (completed 2026-04-23)
 
 ---
 
@@ -159,4 +159,4 @@ Phase 10 (Reporting + Agent)
 
 ---
 
-*最后更新：2026/04/23 - Phase 9 plans added*
+*最后更新：2026/04/23 - Phase 7, 8, 9 已完成，Phase 10 待开始*
