@@ -50,6 +50,32 @@ class IEmbeddingFn(Protocol):
         ...
 
 
+class IPrototypeReviewerService(Protocol):
+    """Protocol for prototype visual review operations."""
+
+    def detect_visual_consistency(self, screens: list[Document]) -> list[ConsistencyIssue]:
+        """Detect inconsistencies across prototype screens."""
+        ...
+
+    def validate_color_consistency(
+        self, screens: list[Document], standards: list[Standard]
+    ) -> list[Finding]:
+        """Validate color usage consistency against design standards."""
+        ...
+
+    def validate_typography_consistency(
+        self, screens: list[Document], standards: list[Standard]
+    ) -> list[Finding]:
+        """Validate typography consistency against design standards."""
+        ...
+
+    def validate_spacing_consistency(
+        self, screens: list[Document], standards: list[Standard]
+    ) -> list[Finding]:
+        """Validate spacing consistency against design standards."""
+        ...
+
+
 class PrototypeReviewerService:
     """Prototype Reviewer Service for visual consistency validation.
 
