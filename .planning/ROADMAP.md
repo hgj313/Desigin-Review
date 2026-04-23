@@ -40,6 +40,9 @@ src_v2/                 # v2.0 全新 DDD 实现
 - [ ] **Phase 7: DDD 骨架** - 建立领域层骨架、接口定义
 - [x] **Phase 8: Ingestion + Retrieval** - 实现摄取和检索上下文 (completed 2026-04-23)
 - [ ] **Phase 9: Review Context** - 实现审查上下文（核心）
+  - [ ] 09-01-PLAN.md — Foundation: CIEDE2000 + LLM prompts
+  - [ ] 09-02-PLAN.md — PRD Reviewer Service
+  - [ ] 09-03-PLAN.md — Prototype Reviewer Service
 - [ ] **Phase 10: Reporting + Agent** - 实现报告上下文和 Agent 编排
 
 ---
@@ -84,6 +87,11 @@ src_v2/                 # v2.0 全新 DDD 实现
 3. 多图输入：支持多个原型图同时分析
 4. 一致性检测：颜色/字体/间距跨屏幕一致性
 
+**Plans:**
+- 09-01-PLAN.md — Foundation: colormath + CIEDE2000 calculator + LLM prompts
+- 09-02-PLAN.md — PRD Reviewer Service: vague language detection + cross-reference validation
+- 09-03-PLAN.md — Prototype Reviewer Service: color/typography/spacing consistency
+
 ### Phase 10: Reporting + Agent Orchestration
 
 **目标：** 实现报告上下文和 Agent 编排
@@ -106,7 +114,7 @@ src_v2/                 # v2.0 全新 DDD 实现
 |-------|----------|
 | Phase 7: DDD 骨架 | DDD-01, DDD-02, DDD-03 |
 | Phase 8: Ingestion + Retrieval | RAG-01, RAG-02 |
-| Phase 9: Review Context | PRD-01, PRD-02, PROTO-01, PROTO-02 |
+| Phase 9: Review Context | PRD-01, PRD-02, PRD-05, PROTO-01, PROTO-02 |
 | Phase 10: Reporting + Agent | RPT-01, RPT-02, AGT-01 |
 
 ### 覆盖率总结
@@ -151,4 +159,4 @@ Phase 10 (Reporting + Agent)
 
 ---
 
-*最后更新：2026/04/22 - v2.0 DDD 重构开始*
+*最后更新：2026/04/23 - Phase 9 plans added*
